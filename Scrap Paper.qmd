@@ -1,0 +1,57 @@
+---
+title: "Scrap Paper"
+format: html
+editor: visual
+---
+
+# 1/7 Readings: Mouse Scatterplot
+
+```{r}
+library(ggplot2)
+# try https:// if you get an error message when loading data from the URL.
+mouse_phenomes = read.csv("/Users/gideon/Desktop/Datasets/mouse-phenomedoc.csv")
+```
+
+```{r}
+str(mouse_phenomes)
+```
+
+```{r}
+sort(table(mouse_phenomes$strain))
+```
+```{r}
+table(mouse_phenomes$strain, mouse_phenomes$sex)
+```
+
+```{r}
+ggplot(data=mouse_phenomes, mapping = aes(x = pctRetic, y = RBC)) +
+  geom_point()
+```
+
+```{r}
+ggplot(data=mouse_phenomes, mapping = aes(x = pctRetic, y = RBC)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+Note that this is a change from the default, which is `loess`. We can remove the confidence interval with `se = FALSE`. 
+
+```{r}
+cor(x=mouse_phenomes$RBC, y=mouse_phenomes$pctRetic, use = "complete.obs")
+```
+
+```{r}
+ggplot(data=mouse_phenomes, mapping = aes(x = pctRetic, y = RBC)) +
+  geom_point(aes(color = sex))
+```
+
+```{r}
+ggplot(data=mouse_phenomes, mapping = aes(x = pctRetic, y = RBC, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+t.test(x = mouse_phenomes[mouse_phenomes$sex == "f", "RBC"], y = mouse_phenomes[mouse_phenomes$sex == "m", "RBC"])
+```
+
