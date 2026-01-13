@@ -1,22 +1,62 @@
 ---
-title: "PS1"
-format: html
-editor: visual
+title: "ProbSet 1, January 16"
+author: 
+  - Gideon Gordon
+  - <gideongordon2029@u.northwestern.edu>
+date: January 16, 2026
+date-format: "**[D]ue:** MMMM D, YYYY"
+format: 
+     pdf:
+       documentclass: article
+fontsize: 12pt
+urlcolor: blue
+number-sections: true
+geometry:
+      - left=1in
+      - right=1in
+      - top=1in
+      - bottom=1in
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+    - \usepackage{float}
+    - \floatplacement{figure}{t}
+    - \floatplacement{table}{t}
+    - \usepackage{flafter}
+    - \usepackage[T1]{fontenc}
+    - \usepackage[utf8]{inputenc}
+    - \usepackage{ragged2e}
+    - \usepackage{booktabs}
+    - \usepackage{amsmath}
+    - \usepackage{url}
 ---
 
-Problem Set 1
-Due Date: January 16, 2026
-Gideon Gordon, Poli Sci 405, Winter 2026. 
 Submission: https://canvas.northwestern.edu/courses/245562/assignments/1676620
 
 ## Problem 1
-Explain in your own words: What is regression trying to achieve? How does it differ from simply calculating the correlation between two variables?
+*Explain in your own words: What is regression trying to achieve? How does it differ from simply calculating the correlation between two variables?*
+
+Linear regression is basically trying to identify the "best linear predictor", so, the line which comes closest to all the points, controlling for some other variables. This is a roundabout way of approximating the unobservable Conditional Expectation Function of $y$ conditional on every possible value of some $x$. 
+
+The BLP is something we want mostly because it's straightforwardly interpretable, not because the CEF is actually a straight line. We can also apply some transformations to the BLP to model more complicated hypothesized CEFs. 
+
+This is all conceptually distinct from a simple correlation between $x$ and $y$ in that calculating a regression doesn't try to find the CEF, and practically distinct in that a regression can take forms aside from a single coefficient (because it can be nonlinear on occasion), has an intercept (because it's a line), and can control for other variables. 
 
 ## Problem 2
-In your experience and judgment, what is the difference between a good and a bad scatterplot? What are the goals of visualizations like scatterplots in the context of social science data analysis?
+*In your experience and judgment, what is the difference between a good and a bad scatterplot? What are the goals of visualizations like scatterplots in the context of social science data analysis?*
+
+The goal of a visualization is to give some vividness to analysis and inspire thinking about possible patterns. To do either of those things, it needs to be tailored to human beings, even if the math is fairly clear. A good scatterplot should be readable and human-accessible. If it's not, don't show the scatterplot, just give me a line or a table. 
+
+This means, first of all, individual dots should be easily interpretable as individual cases of the phenomenon of interest. The exact opposite is what we saw on the democracy-GDP country-year scatterplot. Each dot there was a country-year, which is a weird way to conceptualize a phenomenon we believe occurs at the country level. 
+
+Second, any data shown by individual dots should be readable with the unaided human eye. A possible failing here that I see in some scatterplots is when authors decide to include labels for all the points, or use labels as points on the scatterplot. Often, when data points are close together, the labels overlap and only a few specific points are readable. This is totally useless to the reader. 
+
+Third, the central tendency of the data should be visible to an average human. This has two parts. First of all, showing a big blob of points is useless, even if based on your regression there is a significant central tendency worth paying attention to. If a human being cannot look at the scatterplot and say something like "huh, all the countries with civil wars cluster over here, and all the countries without civil wars cluster over here", the scatterplot is ineffective. 
+
+A second element of making the central tendency visible is to be aware of human biases towards outliers in the data. As we discussed with the democracy-GDP data, our eyes are drawn automatically to a few country-years with very high GDP and very autocratic regimes. This can be corrected in part by including a regression line on the scatterplot or by including some note explaining the outliers. 
 
 ## Problem 3
-Let’s figure out whether there have been equal numbers of ICE arrests in 2024 in states with Democratic and Republican governors. We have a dataset pulled from Wikipedia that lists details about governors, and the deportation data. Let’s start by getting both of these loaded into our R workspace.
+*Let’s figure out whether there have been equal numbers of ICE arrests in 2024 in states with Democratic and Republican governors. We have a dataset pulled from Wikipedia that lists details about governors, and the deportation data. Let’s start by getting both of these loaded into our R workspace.*
 
 ```{r}
 governor_data <- read.csv("https://github.com/jnseawright/ps210/raw/refs/heads/main/Data/stategovs.csv")
@@ -42,19 +82,52 @@ for (i in 1:nrow(ice_arrests)){
 ```
 
 ### 3a. 
-Run a regression predicting state-level ICE arrests relative to the party controlling the state governorship. Interpret the results.
+*Run a regression predicting state-level ICE arrests relative to the party controlling the state governorship. Interpret the results.*
+
+```{r}
+head(ice_arrests)
+```
+
+So, what we'll want to do here is construct a chart of number of arrests by state. Then the question is: "Do states with Republican governors see more arrests than states with Democratic governors?" 
+
+```{r}
+state_ice_arrests = ice_arrests |>
+  group_by(State, Party) |>
+  summarise(count = n())
+state_ice_arrests = mutate(state_ice_arrests, arrests = count)
+state_ice_arrests = mutate(state_ice_arrests, count = NULL)
+```
+
+This is more or less all the information we need. We don't care about anything else (so far). 
+
+```{r}
+partisan_arrests = lm(data = state_ice_arrests, formula = arrests ~ Party)
+summary(partisan_arrests)
+```
+
+That p-value is massive, and so I will say that nothing can be learned from this regression. 
 
 ### 3b. 
-Before running your regression, create an appropriate visualization to explore the relationship between governor’s party and ICE arrests. Consider using a boxplot, violin plot, or jittered scatterplot. Describe what you observe in the visualization and how it complements or contrasts with your regression results.
+*Before running your regression, create an appropriate visualization to explore the relationship between governor’s party and ICE arrests. Consider using a boxplot, violin plot, or jittered scatterplot. Describe what you observe in the visualization and how it complements or contrasts with your regression results.*
 
-Hint: You may need to aggregate the data to state level or sample appropriately for visualization given the dataset’s size.
+*Hint: You may need to aggregate the data to state level or sample appropriately for visualization given the dataset’s size.*
+
+I excluded every place for which no governor was available, then set up a boxplot. 
+
+```{r}
+ggplot(data = na.omit(state_ice_arrests), aes(x = Party, y = arrests)) +
+  geom_boxplot()
+```
+This is a distinctly uninformative visualization, which perfectly complements my distinctly uninformative regression. We see that Republican and Democratic states are very similar in the absolute numbers of arrestees. There are some major outliers, which I can't safely ignore given how few states there are. 
+
+Also though, recall that Republican states tend to have smaller populations, so absolute numbers are not necessarily the best metric here. 
 
 ## Problem 4
-A common feature of regression in social science applications is multivariate analysis. It might make sense to add state populations as a conditioning variable in the regression from the previous problem. Let’s start by adding data on population to our ice_arrests dataset.
+*A common feature of regression in social science applications is multivariate analysis. It might make sense to add state populations as a conditioning variable in the regression from the previous problem. Let’s start by adding data on population to our ice_arrests dataset.*
 
 ```{r}
 state_pops <- read.csv("https://github.com/jnseawright/ps210/raw/refs/heads/main/Data/statepops.csv")
-Now we can use a version of our code from above that copies in state populations instead of partisanship.
+#Now we can use a version of our code from above that copies in state populations instead of partisanship.
 
 #This command creates a new empty variable called Population.
 ice_arrests$Population <- NA
@@ -72,17 +145,54 @@ for (i in 1:nrow(ice_arrests)){
     else ice_arrests$Population[i] <-   
         state_pops$Population2024[state_pops$State==ice_arrests$State[i]]
 }
+```
 
+```{r}
+library(readr)
 #This variable often reads in with commas and gets treated as text, so we'll 
 #make sure to convert it to an actual number.
 ice_arrests$Population <- parse_number(ice_arrests$Population)
 ```
 
 ### 4a. 
-Run a regression predicting state-level ICE arrests as a function of which party controls the governorship and also state population. Once again, interpret your results, also describing any interesting comparisons with the bivariate results in Problem 3.
+*Run a regression predicting state-level ICE arrests as a function of which party controls the governorship and also state population. Once again, interpret your results, also describing any interesting comparisons with the bivariate results in Problem 3.*
+
+
+```{r}
+state_party_population = ice_arrests |>
+  select(State, Population, Party)
+
+state_ice_arrests_population = state_party_population |>
+  group_by(State, Party, Population) |>
+  summarize(arrests = n())
+```
+
+```{r}
+partisan_population_arrests = lm(arrests ~ Party + Population, data = state_ice_arrests_population)
+summary(partisan_population_arrests)
+```
+State population is the best predictor of absolute number of arrests, but a Republican party governor also matters a bit even controlling for population. The substantive effect of having a Republican governor is also fairly large, a difference of about 3,000 arrests. 
+
+This feels a little weird, though. Saying that having a Republican governor is correlated with an increase in arrests of 3,000 people, controlling for population, seems to suggest that there's a flat increase, rather than a change in policies to allow more cooperation (simply by putting these variables in the equation, we're assuming there's some sort of quasi-causal story, even if we can't yet prove causation). I would expect a change in policies to create an increase in the *relative* number of arrests.  
+
+I'm going to restructure to look at arrests proportional to population (ICE arrests per ten thousand people)
+
+```{r}
+state_ice_arrests_population = mutate(state_ice_arrests_population, proportional_arrests = (10000*(arrests/Population)))
+```
+
+Now instead of controlling for population, I'll run the regression straight. I don't think there will be too much of a difference but I'll feel better about it. 
+
+```{r}
+partisan_proportional_arrests = lm(proportional_arrests ~ Party, data = state_ice_arrests_population)
+summary(partisan_proportional_arrests)
+```
+The significance of having a Republican governor falls a lot in this measurement, maybe because of how I rescaled things; the p-value is all the way to 0.1 now. Still, I prefer interpretation this way, since it gives me a number I can interpret better. Having a Republican governor rather than a Democratic governor is correlated (p < 0.1) with an increase in ICE arrests of 1.8 arrests per ten thousand people. 
 
 ### 4b. 
-Create a scatterplot of ICE arrests against state population, using color to distinguish between states with Democratic and Republican governors. Add regression lines (either separate lines for each party or one overall line) to visualize the relationship. Discuss how this visualization helps you understand the multivariate regression results. What patterns do you see that might not be apparent from the regression table alone?
+*Create a scatterplot of ICE arrests against state population, using color to distinguish between states with Democratic and Republican governors. Add regression lines (either separate lines for each party or one overall line) to visualize the relationship. Discuss how this visualization helps you understand the multivariate regression results. What patterns do you see that might not be apparent from the regression table alone?*
+
+
 
 ## Problem 5
 Reflection question: Based on your analysis in Problems 3 and 4, what are at least two limitations of using governor’s partisanship as a predictor of ICE arrests? Consider both methodological issues (e.g., measurement, confounding variables) and substantive concerns (e.g., causal mechanisms, political context).
