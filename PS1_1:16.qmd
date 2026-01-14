@@ -58,7 +58,7 @@ A second element of making the central tendency visible is to be aware of human 
 ## Problem 3
 *Let’s figure out whether there have been equal numbers of ICE arrests in 2024 in states with Democratic and Republican governors. We have a dataset pulled from Wikipedia that lists details about governors, and the deportation data. Let’s start by getting both of these loaded into our R workspace.*
 
-```{r}
+```{r, cache=TRUE}
 governor_data <- read.csv("https://github.com/jnseawright/ps210/raw/refs/heads/main/Data/stategovs.csv")
 ice_arrests <- read.csv("https://github.com/jnseawright/ps210/raw/refs/heads/main/Data/icearrests.csv")
 # Now what we want to do is create a new variable in the ICE data that records the partisanship of the state
@@ -84,18 +84,15 @@ for (i in 1:nrow(ice_arrests)){
 ### 3a. 
 *Run a regression predicting state-level ICE arrests relative to the party controlling the state governorship. Interpret the results.*
 
-```{r}
-head(ice_arrests)
-```
-
 So, what we'll want to do here is construct a chart of number of arrests by state. Then the question is: "Do states with Republican governors see more arrests than states with Democratic governors?" 
 
 ```{r}
+library(dplyr)
+library(dbplyr)
+library(ggplot2)
 state_ice_arrests = ice_arrests |>
   group_by(State, Party) |>
-  summarise(count = n())
-state_ice_arrests = mutate(state_ice_arrests, arrests = count)
-state_ice_arrests = mutate(state_ice_arrests, count = NULL)
+  summarize(arrests = n())
 ```
 
 This is more or less all the information we need. We don't care about anything else (so far). 
@@ -125,9 +122,10 @@ Also though, recall that Republican states tend to have smaller populations, so 
 ## Problem 4
 *A common feature of regression in social science applications is multivariate analysis. It might make sense to add state populations as a conditioning variable in the regression from the previous problem. Let’s start by adding data on population to our ice_arrests dataset.*
 
-```{r}
+```{r, cache=TRUE}
 state_pops <- read.csv("https://github.com/jnseawright/ps210/raw/refs/heads/main/Data/statepops.csv")
-#Now we can use a version of our code from above that copies in state populations instead of partisanship.
+#Now we can use a version of our code from above that copies in state populations 
+#instead of partisanship.
 
 #This command creates a new empty variable called Population.
 ice_arrests$Population <- NA
@@ -168,7 +166,9 @@ state_ice_arrests_population = state_party_population |>
 ```
 
 ```{r}
-partisan_population_arrests = lm(arrests ~ Party + Population, data = state_ice_arrests_population)
+partisan_population_arrests = lm(arrests ~ Party
+                                 + Population, 
+                        data = state_ice_arrests_population)
 summary(partisan_population_arrests)
 ```
 State population is the best predictor of absolute number of arrests, but a Republican party governor also matters a bit even controlling for population. The substantive effect of having a Republican governor is also fairly large, a difference of about 3,000 arrests. 
@@ -178,13 +178,15 @@ This feels a little weird, though. Saying that having a Republican governor is c
 I'm going to restructure to look at arrests proportional to population (ICE arrests per ten thousand people)
 
 ```{r}
-state_ice_arrests_population = mutate(state_ice_arrests_population, proportional_arrests = (10000*(arrests/Population)))
+state_ice_arrests_population = mutate(state_ice_arrests_population, 
+              proportional_arrests = (10000*(arrests/Population)))
 ```
 
 Now instead of controlling for population, I'll run the regression straight. I don't think there will be too much of a difference but I'll feel better about it. 
 
 ```{r}
-partisan_proportional_arrests = lm(proportional_arrests ~ Party, data = state_ice_arrests_population)
+partisan_proportional_arrests = lm(proportional_arrests ~ Party, 
+              data = state_ice_arrests_population)
 summary(partisan_proportional_arrests)
 ```
 The significance of having a Republican governor falls a lot in this measurement, maybe because of how I rescaled things; the p-value is all the way to 0.1 now. Still, I prefer interpretation this way, since it gives me a number I can interpret better. Having a Republican governor rather than a Democratic governor is correlated (p < 0.1) with an increase in ICE arrests of 1.8 arrests per ten thousand people. 
@@ -192,8 +194,51 @@ The significance of having a Republican governor falls a lot in this measurement
 ### 4b. 
 *Create a scatterplot of ICE arrests against state population, using color to distinguish between states with Democratic and Republican governors. Add regression lines (either separate lines for each party or one overall line) to visualize the relationship. Discuss how this visualization helps you understand the multivariate regression results. What patterns do you see that might not be apparent from the regression table alone?*
 
+```{r}
+dems_and_repubs_charted_lm = ggplot(state_ice_arrests_population,   
+  aes(x = Population, y = arrests, color = Party)) +
+  geom_point() +
+  geom_smooth(method="lm") +
+  scale_color_manual(values=c('blue', 'red', 'grey'))
+```
 
+(I had to modify the colors since otherwise the Republicans were in blue and the Democrats in red, contrary to America's most fundamental values). 
+
+```{r, warning= FALSE}
+dems_and_repubs_charted_lm
+```
+
+The regression table alone did not help me much with understanding how the partisan difference plays in practice. My initial evaluation showed that a governor being Republican increased arrests by about 3,000. But the effect is really most significant for the big states. 
+
+```{r, warning=FALSE}
+dems_and_repubs_charted_loess = ggplot(state_ice_arrests_population, aes(x = Population, y = arrests, color = Party)) +
+  geom_point() +
+  geom_smooth() +
+  scale_color_manual(values=c('blue', 'red', 'grey'))
+dems_and_repubs_charted_loess
+```
+The effect is driven primarily by a few flagship states --- I suspect Texas and Florida, the largest Republican states, are the most important ones. Most of the time, the difference between Republican and Democratic governors doesn't matter much. The role of these particular outliers is invisible in the overall regression. 
+
+To visualize just differences between Republicans and Democrats with arrests as a proportion of population"
+
+```{r, warning=FALSE}
+dems_and_repubs_charted_proportionally = ggplot(state_ice_arrests_population, 
+  aes(x = Party, y = proportional_arrests, color = Party)) +
+  geom_jitter() +
+  geom_smooth(method="lm") +
+  scale_color_manual(values=c('blue', 'red', 'grey'))
+dems_and_repubs_charted_proportionally
+```
 
 ## Problem 5
-Reflection question: Based on your analysis in Problems 3 and 4, what are at least two limitations of using governor’s partisanship as a predictor of ICE arrests? Consider both methodological issues (e.g., measurement, confounding variables) and substantive concerns (e.g., causal mechanisms, political context).
+*Reflection question: Based on your analysis in Problems 3 and 4, what are at least two limitations of using governor’s partisanship as a predictor of ICE arrests? Consider both methodological issues (e.g., measurement, confounding variables) and substantive concerns (e.g., causal mechanisms, political context).*
+
+On a methodological level, the first limitation is patterned differences between Republican and Democratic states overall. Democratic states may have strong networks of other organizations able to intervene to interfere with arrests, as we've seen in Minnesota. Electing a Democratic governor and preventing ICE arrests might both be caused separately by strong grassroots liberal activism including at the local government level. Republican states tend to be more rural and agricultural, which correlates with sectors where there is strong demand for undocumented labor --- there may simply be more undocumented immigrants in farm states. If farmers tend to vote for Republicans at higher rates *and* are more likely to employ undocumented labor, governor partisanship and arrest outcomes could be spuriously correlated. 
+
+Substantively, one hypothesized causal mechanism would be that a Democratic governor is less likely to cooperate with ICE agents seeking arrestees than a Republican governor. We have seen that ICE targeting is highly heterogeneous within a single state, and especially since early 2025 has targeted specific selected cities --- Los Angeles, Chicago, Charlotte, New Orleans, and now Minneapolis. ICE targeting here, even in Republican states like North Carolina and Louisiana, almost exclusively targets liberal cities with Democratic mayors. 
+
+We still might guess that Republican states are more willing to overrule local leaders to prevent interference with ICE. But in both Democratic-controlled and Republican states, police have cooperated actively with ICE, and tend to provide basic security for ICE officers. Actual government intervention to prevent ICE enforcement has been lackluster. Instead, the most effective interventions have been through civil society organizations providing shelter and legal aid. 
+
+In this context, I would lean towards the idea that civil society mobilization is correlated with *both* liberal governors *and* lower ICE arrest rates and. that the correlation is mostly spurious. 
+
 
