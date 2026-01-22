@@ -81,12 +81,12 @@ On this last point, it is difficult to actually prove one way or another that tw
 
 ```{r load-data, eval=FALSE}
 # Option 1: Using the rqog package (preferred)
-devtools::install_github("ropengov/rqog")
-library(rqog)
-qogts <- read_qog(which_data = "standard", data_type = "time-series")
+# devtools::install_github("ropengov/rqog")
+# library(rqog)
+# qogts <- read_qog(which_data = "standard", data_type = "time-series")
 
-# Option 2: Alternative if rqog doesn't work (uncomment and run)
-# qogts <- read.csv("https://github.com/jnseawright/ps405/raw/refs/heads/main/Data/qog_sample.csv")
+#Option 2: Alternative if rqog doesn't work (uncomment and run)
+qogts <- read.csv("https://github.com/jnseawright/ps405/raw/refs/heads/main/Data/qog_sample.csv")
 
 # Clean the data for analysis
 library(dplyr)
@@ -130,15 +130,20 @@ dem_wealth_plot
 ```
 
 **Questions for 4a**:
-1. Describe what each curve (LOESS and linear) suggests about the relationship between wealth and democracy.
-2. Which fit seems more appropriate for these data and why?
-3. Based on the LOESS curve, does the relationship appear to be linear throughout the range of GDP values?
+*1. Describe what each curve (LOESS and linear) suggests about the relationship between wealth and democracy.*
+The linear approximation suggests that there's a direct positive relationship between wealth and democracy. The LOESS curve seems to suggest that the relationship between wealth and democracy plateaus at a certain point. 
+
+*2. Which fit seems more appropriate for these data and why?*
+The LOESS curve better captures a key point in the data, which is that in practice, increasing your GDP per capita past about 60,000 USD does not do much to improve your chances at democracy. There is a point of diminishing returns. But the peak visible in the curve is not until around 60,000 USD, so for the vast majority of countries on Earth, the linear relationship between wealth and democracy is probably more relevant. 
+
+*3. Based on the LOESS curve, does the relationship appear to be linear throughout the range of GDP values?*
+No. The upper GDP values farther to the right provide very little marginal increase in GDP per capita. (I should say that though the LOESS curve slopes downward towards the right-hand side of the graph, this is a bit of an illusion caused by the smaller number of cases with high GDP per capita. The 95% confidence interval shadow better captures the plateau, as the upper bound of the confidence interval remains fairly straight though the lower bound extends downward to capture what are most likely to be high-income low-democracy petro-dictatorships). 
 
 ---
 
 ### 4b.
 
-Fit the empirical approximation of the Best Linear Predictor connecting democracy and wealth. Report and interpret the coefficients.
+*Fit the empirical approximation of the Best Linear Predictor connecting democracy and wealth. Report and interpret the coefficients.*
 
 ```{r problem4b, eval=FALSE}
 # Fit the linear model (BLP)
@@ -148,20 +153,36 @@ blp_model <- lm(democracy ~ gdp_pc, data = qog_clean)
 summary(blp_model)
 
 # Alternative: Using modelsummary for nicer output
-library(modelsummary)
-modelsummary(blp_model, stars = TRUE, output = "markdown")
+#library(modelsummary)
+#modelsummary(blp_model, stars = TRUE, output = "markdown")
 ```
 
 **Questions for 4b**:
-1. Interpret the intercept and slope coefficients in substantive terms.
-2. What is the predicted democracy score for a country with $20,000 GDP per capita? Show your calculation.
-3. Calculate and interpret R-squared. What does it tell us about this BLP?
+*1. Interpret the intercept and slope coefficients in substantive terms.*
+The intercept is the predicted value of democracy (on the V-dem score) when GDP per capita is 0. The slope of `gdp_pc` is how much the v-dem score increases for every one dollar increase in GDP. 
+
+*2. What is the predicted democracy score for a country with $20,000 GDP per capita? Show your calculation.*
+
+```{r}
+20000*(5.993*10^{-6}) + 0.3027
+```
+
+We get a V-dem score of 0.42 for a country with $20,000 GDP per capita. 
+
+*3. Calculate and interpret R-squared. What does it tell us about this BLP?*
+
+```{r}
+model_summary = summary(blp_model)
+model_summary$r.squared
+```
+
+R-squared is given in the summary statistics as 0.2391. The R-squared is the proportion of the variation explained by the model, which in this case is about 23% --- so our model leaves about 77% of the variation in democracy across countries "unexplained." (I use the term unexplained because I don't know a better term, but really, we haven't explained democracy simply by showing a correlation). 
 
 ---
 
 ### 4c.
 
-Now let's compare the BLP to a simple approximation of the CEF using grouped means:
+*Now let's compare the BLP to a simple approximation of the CEF using grouped means:*
 
 ```{r problem4c, eval=FALSE}
 # Create wealth groups
@@ -221,10 +242,16 @@ comparison_plot
 ```
 
 **Questions for 4c**:
-1. How well does the BLP approximate the grouped means (our simple CEF approximation)? 
-2. In which wealth range does the BLP fit best? Where does it fit worst?
-3. Discuss: Under what conditions might the BLP be a poor approximation of the true CEF for these data?
-4. Calculate the mean squared error (MSE) for both the BLP and the grouped means approach (treating group means as predictions for all observations in that group). Which has lower MSE?
+*1. How well does the BLP approximate the grouped means (our simple CEF approximation)?* 
+*2. In which wealth range does the BLP fit best? Where does it fit worst?*
+The BLP is an okay approximation of the grouped means. At lower levels of GDP it overestimates democracy, and at higher levels of GDP it actually underestimates democracy. The BLP fits the group means best at the mid-range from about 10,000 USD per capita to about 30,000, and it's farthest from correct in the highest category. 
+
+*3. Discuss: Under what conditions might the BLP be a poor approximation of the true CEF for these data?*
+The problem seems to be that the underlying data is roughly logarithmic, with a rapid increase earlier on and a plateau later. (The plateau we know about from the earlier LOESS curve, but we don't see it in the group means because there's no separate group mean for 60,000 USD plus). The group means suggest that the BLP is a better approximation of the true CEF when it's closer to the mean value of X, but it does a worse job farther from the mean value of X. I would add based on the LOESS curve that the BLP is best at the points where it intercepts the CEF, which occurs in this case near the center of the data. 
+
+The BLP is therefore a poor approximation at extreme values, where the non-linearity of the CEF produces outcomes the linear model cannot account for. And moving along the data's long tail to the right, the BLP gets less and less accurate.  
+
+*4. Calculate the mean squared error (MSE) for both the BLP and the grouped means approach (treating group means as predictions for all observations in that group). Which has lower MSE?*
 
 ```{r mse-calculation, eval=FALSE}
 # Calculate MSE for BLP
@@ -241,11 +268,13 @@ cat("Grouped Means MSE:", round(group_mse, 4), "\n")
 cat("Difference (BLP - Grouped):", round(blp_mse - group_mse, 4))
 ```
 
+The MSE for the grouped means is lower. So, even an extremely rudimentary way to model the CEF might produce less error than our BLP. 
+
 ---
 
 ### 4d.
 
-Modernization theory in political science suggests that democracy increases with wealth but at a decreasing rate (diminishing returns).
+*Modernization theory in political science suggests that democracy increases with wealth but at a decreasing rate (diminishing returns).*
 
 ```{r problem4d, eval=FALSE}
 # Let's explore a non-linear specification
@@ -305,7 +334,38 @@ model_comparison_plot
 ```
 
 **Questions for 4d**:
-1. Does the LOESS curve from 4a support the modernization theory prediction of diminishing returns?
-2. Compare the linear (BLP), quadratic, and log-linear models. Which seems to best capture the relationship suggested by the LOESS curve?
-3. What are the trade-offs between using a simple linear model (BLP) versus a more flexible specification?
-4. If you were writing a paper on wealth and democracy, which model would you choose and why? Consider both statistical fit and substantive interpretability.
+*1. Does the LOESS curve from 4a support the modernization theory prediction of diminishing returns?*
+More or less. As I noted looking at the LOESS curve in 4a, the curve itself seems to decline to the right, but we also know that this is a result of a few very wealthy authoritarian outliers. Democracy scores increase (though unevenly) until about $60,000 and then stop increasing. 
+
+*2. Compare the linear (BLP), quadratic, and log-linear models. Which seems to best capture the relationship suggested by the LOESS curve?*
+The BLP massively overpredicts democracy in very wealthy countries; the quadratic function seems to imply that democracy actually declines once a country gets "too wealthy". The log-linear model seems to intuitively capture the relationship best, but...
+
+```{r}
+blp_mse = mean(residuals(blp_model)^2)
+poly_mse = mean(residuals(poly_model)^2)
+log_mse = mean(residuals(log_model)^2)
+cat("BLP MSE:", round(blp_mse, 4), "\n")
+cat("Polynomial MSE:", round(poly_mse, 4), "\n")
+cat("Logarithmic MSE:", round(log_mse, 4), "\n")
+```
+
+...when I did the math, I did find that the polynomial MSE had the lowest error. This I suppose is a cautionary tale in the difference between a model being useful for describing data precisely and a model being useful for making policy.  
+
+*3. What are the trade-offs between using a simple linear model (BLP) versus a more flexible specification?*
+
+On a more math-y side of things. The more flexible specifications reduce error, which is good in theory, but they run the risk of overfitting. This, I think, is the problem with the polynomial specification above, which reduces error by matching the data available very neatly, but suggests a relationship which makes very little intuitive sense. 
+
+The BLP has higher error than other specifications, so it will be in general "wronger," but only if our end goal is simply to describe the data. If the goal is to understand an underlying relationship, having a model which flattens out irregularities might get us closer to the truth. 
+
+On a science communication side, flexible specifications run the risk of giving false precision. A BLP is helpful, in my view, because it's so clearly an abstraction. 
+
+*4. If you were writing a paper on wealth and democracy, which model would you choose and why? Consider both statistical fit and substantive interpretability.*
+
+I would probably choose the logarithmic model. This is for a few reasons. 
+
+1. It fits well enough without overcorrecting, and as I said for the BLP, it smooths out some of the outliers. 
+2. It has some theoretical grounding. I have theoretical reasons to think that a logarithmic relationship applies and good reasons (from my outside knowledge) to ignore certain outliers that would otherwise change the shape. 
+3. A human being can look at the graph and usefully interpret it without doing much additional brain-work. 
+
+On the other hand, in an actual paper, if I wanted to be complete, I would provide a lot more than just one graph. So, for example, I would want to show what the scatterplot would look like excluding rentier states, and separately what it looks like excluding European states. In both cases I would show both the basic BLP to give a broad sense of the relationship and the logarithmic model. 
+
