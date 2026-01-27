@@ -171,11 +171,6 @@ We get a V-dem score of 0.42 for a country with $20,000 GDP per capita.
 
 *3. Calculate and interpret R-squared. What does it tell us about this BLP?*
 
-```{r}
-model_summary = summary(blp_model)
-model_summary$r.squared
-```
-
 R-squared is given in the summary statistics as 0.2391. The R-squared is the proportion of the variation explained by the model, which in this case is about 23% --- so our model leaves about 77% of the variation in democracy across countries "unexplained." (I use the term unexplained because I don't know a better term, but really, we haven't explained democracy simply by showing a correlation). 
 
 ---
@@ -341,15 +336,14 @@ More or less. As I noted looking at the LOESS curve in 4a, the curve itself seem
 The BLP massively overpredicts democracy in very wealthy countries; the quadratic function seems to imply that democracy actually declines once a country gets "too wealthy". The log-linear model seems to intuitively capture the relationship best, but...
 
 ```{r}
-blp_mse = mean(residuals(blp_model)^2)
-poly_mse = mean(residuals(poly_model)^2)
-log_mse = mean(residuals(log_model)^2)
-cat("BLP MSE:", round(blp_mse, 4), "\n")
-cat("Polynomial MSE:", round(poly_mse, 4), "\n")
-cat("Logarithmic MSE:", round(log_mse, 4), "\n")
+#poly_mse = mean(residuals(poly_model)^2)
+#log_mse = mean(residuals(log_model)^2)
+#cat("BLP MSE:", round(blp_mse, 4), "\n")
+#cat("Polynomial MSE:", round(poly_mse, 4), "\n")
+#cat("Logarithmic MSE:", round(log_mse, 4), "\n")
 ```
 
-...when I did the math, I did find that the polynomial MSE had the lowest error. This I suppose is a cautionary tale in the difference between a model being useful for describing data precisely and a model being useful for making policy.  
+...when I did the math, I did find that the polynomial model had the lowest MSE (0.045, versus 0.0498 for the BLP and 0.0487 for the logarithmic model). This I suppose is a cautionary tale in the difference between a model being useful for describing data precisely and a model being useful for making policy.  
 
 *3. What are the trade-offs between using a simple linear model (BLP) versus a more flexible specification?*
 
