@@ -175,6 +175,7 @@ Install and load the required data:
 install.packages("poliscidata")
 library(poliscidata)
 library(tidyverse)
+library(ggplot2)
 
 # Clean and prepare the data
 states_data <- states %>%
@@ -199,7 +200,7 @@ Create a visualization that shows:
 3. A LOESS curve to approximate the true CEF
 4. Compare the two curves. Does the relationship appear linear?
 
-```{r}
+```{r graphing stuff}
 ggplot(data = states_data, mapping = aes(x = income_thousands, y = vep12_turnout)) +
   geom_point() +
   geom_smooth(method = "loess", se = TRUE, color = "blue", 
