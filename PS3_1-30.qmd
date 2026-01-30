@@ -171,8 +171,7 @@ Basically, if the CEF error term is correlated with X, some part of the error wi
 
 Install and load the required data:
 
-```{r load-data, eval=FALSE}
-install.packages("poliscidata")
+```{r load-data}
 library(poliscidata)
 library(tidyverse)
 library(ggplot2)
