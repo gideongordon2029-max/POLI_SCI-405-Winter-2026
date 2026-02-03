@@ -1,0 +1,160 @@
+#######################
+## Problem Set 4     ##
+#######################
+
+**Due Date**: February 6, 2026  
+**Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1676748](https://canvas.northwestern.edu/courses/245562/assignments/1676748)
+
+---
+
+####################
+## Problem 1      ##
+####################
+
+**1a.** Define omitted variable bias in your own words.
+
+**1b.** Consider the linear models:
+$$y = \beta_0 + \beta_1x_1 + \beta_2x_2 + u$$
+$$y = \beta^*_0 + \beta^*_1x_1 + u^*$$
+
+Derive the formula for $\beta^*_1$ in terms of $\beta_1$, $\beta_2$, and the relationship between $x_1$ and $x_2$. Show all steps.
+
+**1c.** Interpret each term in your formula from 1b. Under what conditions does omitted variable bias occur? When is it zero?
+
+---
+
+####################
+## Problem 2      ##
+####################
+
+
+The lecture slides show a nonlinear CEF for GDP and turnout, with different linear approximations (BLPs) for different ranges of GDP. In your own words, explain:
+
+1. What does it mean for the BLP to be the "best linear approximation" of a nonlinear CEF?
+2. How can the BLP coefficient change sign depending on which range of the data we focus on?
+3. What are the implications for interpreting regression coefficients when the true CEF is nonlinear?
+
+---
+
+####################
+## Problem 3      ##
+####################
+
+Return to your voter turnout analysis from Problem Set 3.
+
+**3a.** Re-examine the difference between your bivariate model (turnout ~ income) and multivariate model (turnout ~ income + religiosity + age). Set up a version of the multivariate model that uses only income and religiosity and does not use age (turnout ~ income + religiosity). Calculate the omitted variable bias for income comparing this new multivariate model to the bivariate model using the formula from Problem 1.
+
+```{r problem3a, eval=FALSE}
+# Calculate the components needed for OVB formula
+# You'll need:
+# 1. β2 from multivariate model (coefficient for religiosity)
+# 2. Covariance between income and religiosity
+# 3. Variance of income
+
+# Then compute: OVB = β2 * Cov(x1, x2) / Var(x1)
+```
+
+**3b.** Does the OVB formula correctly predict the difference between the bivariate and multivariate income coefficients? Show your calculations.
+
+**3c.** Based on the lecture slides' discussion of model specification:
+1. Could adding more variables ever increase bias? Under what conditions?
+2. When might it be better to use a bivariate model even if you suspect omitted variables?
+
+---
+
+####################
+## Problem 4      ##
+####################
+
+**Simulation Study of OVB**
+
+We'll study two scenarios of omitted variable bias through simulation.
+
+**Scenario A: Confounding (Both X1 and X2 cause Y)**
+
+```{r scenarioA, eval=FALSE}
+set.seed(789)
+n <- 1000
+x1 <- rnorm(n)
+x2 <- 0.7*x1 + rnorm(n)  # x2 correlated with x1
+y <- 2 + 1.5*x1 + 2*x2 + rnorm(n, sd = 0.5)
+
+# Run regressions
+model_bivariate <- lm(y ~ x1)
+model_multivariate <- lm(y ~ x1 + x2)
+
+summary(model_bivariate)
+summary(model_multivariate)
+```
+
+**Questions for Scenario A:**
+1. What is the true value of $\beta_{1}$?
+2. What is the estimated $beta_{1}$ in the bivariate model? How biased is it?
+3. Use the OVB formula to calculate the expected bias. Does it match the actual bias?
+
+**Scenario B: Collider Bias (X2 is a common effect)**
+
+```{r scenarioB, eval=FALSE}
+set.seed(789)
+n <- 1000
+
+# Correct setup for collider scenario
+x1 <- rnorm(n)
+y <- 2 + 1.5*x1 + rnorm(n, sd = 0.5)  # y depends only on x1
+x2 <- 0.7*x1 - 1.5*y + rnorm(n, sd = 0.5)  # x2 is a collider
+
+# Run regressions
+model_correct <- lm(y ~ x1)  # Correct specification
+model_collider <- lm(y ~ x1 + x2)  # Including collider
+
+summary(model_correct)
+summary(model_collider)
+```
+
+**Questions for Scenario B:**
+1. What is the true value of $\beta_1$?
+2. What happens when we include x2 in the regression? Why?
+3. This demonstrates "bad control" or collider bias. Explain in your own words why including x2 creates bias even though x2 is correlated with both x1 and y.
+
+**4c. Simulation Synthesis:**
+1. Create a table comparing both scenarios.
+2. Under what circumstances does adding a control variable reduce bias? When might it increase bias?
+3. How can researchers decide which variables to include in a regression model?
+
+---
+
+####################
+## Problem 5      ##
+####################
+
+The lecture slides derive OLS using the plug-in principle and matrix algebra.
+
+**5a. Plug-in Principle:**
+1. Define the plug-in principle in your own words.
+
+**5b. Matrix Derivation:**
+The OLS estimator in matrix form is:
+$$\hat{\beta} = (X^TX)^{-1}X^Ty$$
+
+Using the turnout data with GDP and Temperature:
+
+```{r problem5b, eval=FALSE}
+# Load and clean data
+turnout <- read_csv("https://raw.githubusercontent.com/jnseawright/ps405/refs/heads/main/Data/turnout.csv")
+turnout_clean <- turnout[13:nrow(turnout), ]  # Remove NA rows as in slides
+
+# Create X matrix with intercept, GDP, Temperature
+X <- as.matrix(cbind(1, turnout_clean$GDP, turnout_clean$Temperature))
+colnames(X) <- c("Intercept", "GDP", "Temperature")
+
+# Create y vector
+y <- turnout_clean$Turnout
+
+# Calculate OLS coefficients using matrix algebra
+
+
+# Compare with lm() output
+
+```
+
+1. Verify that your matrix calculation matches the `lm()` output.
