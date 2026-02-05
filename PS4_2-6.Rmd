@@ -1,17 +1,46 @@
-#######################
-## Problem Set 4     ##
-#######################
+---
+title: "ProbSet 4, February 6"
+author: 
+  - Gideon Gordon
+  - <gideongordon2029@u.northwestern.edu>
+date: February 6, 2026
+date-format: "**[D]ue:** MMMM D, YYYY"
+format: 
+     pdf:
+       documentclass: article
+fontsize: 12pt
+urlcolor: blue
+number-sections: true
+geometry:
+      - left=1in
+      - right=1in
+      - top=1in
+      - bottom=1in
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+    - \usepackage{float}
+    - \floatplacement{figure}{t}
+    - \floatplacement{table}{t}
+    - \usepackage{flafter}
+    - \usepackage[T1]{fontenc}
+    - \usepackage[utf8]{inputenc}
+    - \usepackage{ragged2e}
+    - \usepackage{booktabs}
+    - \usepackage{amsmath}
+    - \usepackage{url}
+---
 
-**Due Date**: February 6, 2026  
 **Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1676748](https://canvas.northwestern.edu/courses/245562/assignments/1676748)
 
 ---
 
-####################
-## Problem 1      ##
-####################
+## Problem 1
 
 **1a.** Define omitted variable bias in your own words.
+
+Omitted variable bias is the change in the coefficient of one variable that results from removing another variable from a regression equation. 
+
 
 **1b.** Consider the linear models:
 $$y = \beta_0 + \beta_1x_1 + \beta_2x_2 + u$$
@@ -19,52 +48,140 @@ $$y = \beta^*_0 + \beta^*_1x_1 + u^*$$
 
 Derive the formula for $\beta^*_1$ in terms of $\beta_1$, $\beta_2$, and the relationship between $x_1$ and $x_2$. Show all steps.
 
+We can start by defining $x_1$ in terms of all the other variables in the full formula. 
+$(y - \beta_0 - \beta_2 x_2 - u)/\beta_1 = x_1$
+
+Then let's insert our formula for $x_1$ into the other formula. 
+$y = \beta_0^* + \beta_1^*[(y - \beta_0 - \beta_2 x_2 - u)/\beta_1] + u^*$ 
+
+We want to get $\beta_1^*$ on its own, so let's shuffle things around again. 
+$\beta_1(y - \beta_0^* - u^*)/[(y - \beta_0 - \beta_2 x_2 - u)] = \beta_1^*$
+
 **1c.** Interpret each term in your formula from 1b. Under what conditions does omitted variable bias occur? When is it zero?
+
+$\beta_0$ is the intercept, with both $x_1$ and $x_2$ included. 
+$\beta_0^*$ is the intercept with only $x_1$ included. 
+$x_1$ is the main variable of interest, whose coefficient will differ depending on what other variables we control for. 
+$\beta_1$ is the coefficient of $x_1$ with a control for $x_2$.
+$\beta_1^*$ is the coefficient of $x_1$ without a control for $x_2$. 
+$x_2$ is a control variable on which $x_1$ may be conditional. 
+$\beta_2$ is the coefficient of $x_2$. 
+$y$ is the predicted value for a given $x_1$ and $x_2$. 
+$u$ and $u^*$ are the 
+
+Omitted variable bias will be the difference between $\beta_1^*$ and $\beta_1$ ($\beta_1 - \beta_1^*$), which we can express as:
+
+$\beta_1(y - \beta_0^* - u^*)/(y - \beta_0 - \beta_2 x_2 - u) = \beta_1^*$
+$\beta_1^*(y - \beta_0^* - u^*)/(y - \beta_0 -\beta_2 x_2 - u) = \beta_1$
+
+$\beta_1^*(y - \beta_0^* - u^*)/(y - \beta_0 -\beta_2 x_2 - u) - \beta_1(y - \beta_0^* - u^*)/(y - \beta_0 - \beta_2 x_2 - u)$. 
+
+The omitted variable bias will only be zero if $x_2$ has no covariance with $x_1$ ($cov(x_1, x_2) = 0$) or if $\beta_2$ is 0. 
 
 ---
 
-####################
-## Problem 2      ##
-####################
-
+## Problem 2
 
 The lecture slides show a nonlinear CEF for GDP and turnout, with different linear approximations (BLPs) for different ranges of GDP. In your own words, explain:
 
-1. What does it mean for the BLP to be the "best linear approximation" of a nonlinear CEF?
-2. How can the BLP coefficient change sign depending on which range of the data we focus on?
-3. What are the implications for interpreting regression coefficients when the true CEF is nonlinear?
+*2a.* What does it mean for the BLP to be the "best linear approximation" of a nonlinear CEF?
+
+It means basically that even though it's not the best approximation of the CEF, there is no *linear* approximation that does a better job accounting for variation in $y$ conditional on $x$. There are other non-linear approximations that do better though. 
+
+Even though the CEF is nonlinear, the BLP will still retain some handy properties: errors will average out to zero, and errors will be uncorrelated with the independent variable. 
+
+*2b.* How can the BLP coefficient change sign depending on which range of the data we focus on?
+
+The BLP has to be linear. So, if the CEF is not linear, the BLP will average the slope over the area where most of the data is concentrated. For example, if the center of mass of a quadratic CEF is towards the right, the BLP will mostly approximate the section of the data where the quadratic is increasing as $x$ increases (so it will have a positive coefficient). If the center of the distribution is towards the left, the BLP will mostly approximate the area where the value of $y$ is decreasing as $x$ increases (so it will have a negative coefficient). 
+
+*2c.* What are the implications for interpreting regression coefficients when the true CEF is nonlinear?
+
+You have to pay careful attention to the distribution of the data, first of all. You have to recognize that the BLP is an approximation based on where data points exist in our sample. So, if our true CEF is quadratic and almost all the data we have is to the right of the quadratic's minimum value, we'll get something that looks like a positive BLP. 
+
+The BLP will generally be a better approximation of the CEF closer to the center of mass of the data, and farther from that center, the BLP will stop being so useful. 
 
 ---
 
-####################
-## Problem 3      ##
-####################
+## Problem 3
 
 Return to your voter turnout analysis from Problem Set 3.
 
 **3a.** Re-examine the difference between your bivariate model (turnout ~ income) and multivariate model (turnout ~ income + religiosity + age). Set up a version of the multivariate model that uses only income and religiosity and does not use age (turnout ~ income + religiosity). Calculate the omitted variable bias for income comparing this new multivariate model to the bivariate model using the formula from Problem 1.
 
+```{r load-data}
+library(poliscidata)
+library(tidyverse)
+library(ggplot2)
+
+# Clean and prepare the data
+states_data <- states %>%
+  select(state, vep12_turnout, prcapinc, religiosity, over64) %>%
+  filter(!is.na(vep12_turnout), !is.na(prcapinc)) %>%
+  mutate(income_thousands = prcapinc / 1000)
+```
+
+
+```{r bivariate-code}
+# Your code here
+turnout_bivariate <- lm(vep12_turnout ~ income_thousands, data = states_data)
+summary(turnout_bivariate)
+```
+
+
+```{r multivariate-code}
+# Your code here
+turnout_multivariate <- lm(vep12_turnout ~ income_thousands + religiosity + over64, 
+                           data = states_data)
+summary(turnout_multivariate)
+```
+
+Then compute: OVB = β2 * Cov(x1, x2) / Var(x1) 
+
 ```{r problem3a, eval=FALSE}
+
+
 # Calculate the components needed for OVB formula
 # You'll need:
 # 1. β2 from multivariate model (coefficient for religiosity)
+coef(turnout_multivariate)["religiosity"]
 # 2. Covariance between income and religiosity
+cov(states_data$income_thousands, states_data$religiosity)
 # 3. Variance of income
+var(states_data$income_thousands)
 
 # Then compute: OVB = β2 * Cov(x1, x2) / Var(x1)
+
+OVB = coef(turnout_multivariate)["religiosity"] * cov(states_data$income_thousands, states_data$religiosity) / var(states_data$income_thousands)
+
+```
+(I must have gotten 1 *seriously* wrong, but I'm not sure how. **Please help.**) 
+
+**3b.** Does the OVB formula correctly predict the difference between the bivariate and multivariate income coefficients? Show your calculations. 
+
+```{r}
+OVB2 = coef(turnout_multivariate)["income_thousands"] - coef(turnout_bivariate)["income_thousands"]
 ```
 
-**3b.** Does the OVB formula correctly predict the difference between the bivariate and multivariate income coefficients? Show your calculations.
+For some reason the OVB I calculated directly just now (OVB2) was negative rather than positive It should be positive, since omitting the religiosity variable increases the coefficient of income. But I'm not sure where the error is coming from. There's also some slight difference at the thousandths place (0.226 versus 0.228). Broadly speaking, yes the OVB formula predicts the difference between bivariate and multivariate income coefficients, but there are probably some things going on under the hood that I'm missing. 
+
 
 **3c.** Based on the lecture slides' discussion of model specification:
 1. Could adding more variables ever increase bias? Under what conditions?
+Adding a control variable will change the coefficient of the independent variable, as long as the control is correlated with both dependent and independent variables and *regardless of the reason for the correlation.* 
+
+So if you control for an important mediating variable, you might wind up reducing the apparent direct effect of our independent variable on our dependent variable, concealing a real effect. 
+
+If you control for a "collider", which is a variable resulting from both $x_1$ and $y$, you create additional bias. An example: Let's say we find that disease outbreaks are made more likely when a civil war is occurring. If we were to add a variable for excess deaths, that would be correlated with the civil war (because of battle deaths) *and* with the disease outbreak (because of deaths from disease), even though the causation clearly runs from disease to excess death and not in reverse. Controlling for excess deaths would muddle the effect of civil war on disease outbreaks. 
+
+Only if you control for a confounding variable do things improve. 
+
 2. When might it be better to use a bivariate model even if you suspect omitted variables?
+
+Bivariate models are generally easier to interpret and work with. They also require less data, because the more variables you throw in, the fewer degrees of freedom you have. So if you don't have a good theoretical description of how the omitted variable will work (for example, if you aren't certain which way causation ought to flow), or enough data to make a more complicated regression safe, a bivariate model might be your best bet. 
 
 ---
 
-####################
-## Problem 4      ##
-####################
+## Problem 4
 
 **Simulation Study of OVB**
 
@@ -89,8 +206,23 @@ summary(model_multivariate)
 
 **Questions for Scenario A:**
 1. What is the true value of $\beta_{1}$?
-2. What is the estimated $beta_{1}$ in the bivariate model? How biased is it?
+The true value is the coefficient in the CEF, 1.5. 
+
+2. What is the estimated $\beta_{1}$ in the bivariate model? How biased is it?
+The estimated $\beta_1$ in the bivariate model is quite biased, almost double the real value (2.9 instead of 1.5). The bias is 
+
+```{r}
+coef(model_multivariate)["x1"] - coef(model_bivariate)["x1"]
+```
+
+
 3. Use the OVB formula to calculate the expected bias. Does it match the actual bias?
+```{r, OVB_scenarioA}
+2 * cov(x1, x2) / var(x1)
+
+```
+Just about! It's a little bit off in the hundredths and thousandths place. 
+
 
 **Scenario B: Collider Bias (X2 is a common effect)**
 
@@ -113,19 +245,53 @@ summary(model_collider)
 
 **Questions for Scenario B:**
 1. What is the true value of $\beta_1$?
+The true value here is again 1.5, from the true CEF. 
+
 2. What happens when we include x2 in the regression? Why?
+Including x2 reduces the coefficient $\beta_1$ from its actual value, because x2 captures some of the variation in x1 and y (even though it is downstream of both). 
+
 3. This demonstrates "bad control" or collider bias. Explain in your own words why including x2 creates bias even though x2 is correlated with both x1 and y.
+Because x2 is not actually a cause of y; it is an effect of y and x1. The causation is backwards, but a regression can't tell the direction of causation. 
 
 **4c. Simulation Synthesis:**
 1. Create a table comparing both scenarios.
+
+I'll first create a vector of values of $\beta_1$, $\beta_1^*$, $\beta_2$ for each scenario. 
+
+```{r}
+scenarioA_coefs = c(coef(model_multivariate)["x1"], coef(model_bivariate)["x1"], coef(model_multivariate)["x2"])
+scenarioB_coefs = c(coef(model_correct)["x1"], coef(model_collider)["x1"], coef(model_collider)["x2"])
+
+beta1 = c(coef(model_multivariate)["x1"], coef(model_correct)["x1"])
+beta1star = c(coef(model_bivariate)["x1"], coef(model_collider)["x1"])
+beta2 = c(coef(model_multivariate)["x2"], coef(model_collider)["x2"])
+```
+
+```{r}
+scenariosA_B = data.frame(cbind(scenarioA_coefs, scenarioB_coefs))
+rownames(scenariosA_B) <- c("Correct X1", "Biased X1", "Control (right or wrong)")
+colnames(scenariosA_B) <- c("Scenario A", "Scenario B")
+```
+
+```{r}
+library(tinytable) 
+
+tt(scenariosA_B, rownames = TRUE, digits = 3, escape = TRUE)
+```
+
 2. Under what circumstances does adding a control variable reduce bias? When might it increase bias?
+
+Adding a control variable, as I said, reduces bias as long as the control variable controls for a confounder (a cause of both $x_1$ and $y$). It will create new bias problems if the control variable controls for a collider (an effect of both $x_1$ and $y$), and we might consider controlling for a mediating variable (an effect of $x_1$ and a cause of $y$) problematic. 
+
 3. How can researchers decide which variables to include in a regression model?
+
+My answer would be: You need to have a decent theory of what's going on before you start tinkering with the variables. In some cases, something is clearly a collider, mediator, or confounder. Other times, you should think carefully first and only add variables that, at minimum, you are sure aren't colliders. 
+
+You can't tell from the coefficients alone, since almost no matter what you do, adding variables will change the coefficients one way or another. 
 
 ---
 
-####################
-## Problem 5      ##
-####################
+## Problem 5
 
 The lecture slides derive OLS using the plug-in principle and matrix algebra.
 
