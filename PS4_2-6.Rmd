@@ -76,7 +76,9 @@ $\beta_1^*(y - \beta_0^* - u^*)/(y - \beta_0 -\beta_2 x_2 - u) = \beta_1$
 
 $\beta_1^*(y - \beta_0^* - u^*)/(y - \beta_0 -\beta_2 x_2 - u) - \beta_1(y - \beta_0^* - u^*)/(y - \beta_0 - \beta_2 x_2 - u)$. 
 
-The omitted variable bias will only be zero if $x_2$ has no covariance with $x_1$ ($cov(x_1, x_2) = 0$) or if $\beta_2$ is 0. 
+The omitted variable bias will only be zero if $x_2$ has no covariance with $x_1$ ($cov(x_1, x_2) = 0$) or if $\beta_2$ is 0. I know that. What I *don't* know is how to explain it based on the mess of formulae I just produced. 
+
+I would appreciate some help linking the official OVB formula to the version which is $\beta_1 - \beta_1^*$. 
 
 ---
 
@@ -137,7 +139,7 @@ summary(turnout_multivariate)
 
 Then compute: OVB = β2 * Cov(x1, x2) / Var(x1) 
 
-```{r problem3a, eval=FALSE}
+```{r problem3a}
 
 
 # Calculate the components needed for OVB formula
@@ -158,11 +160,11 @@ OVB = coef(turnout_multivariate)["religiosity"] * cov(states_data$income_thousan
 
 **3b.** Does the OVB formula correctly predict the difference between the bivariate and multivariate income coefficients? Show your calculations. 
 
-```{r}
+```{r ovb2_calculation}
 OVB2 = coef(turnout_multivariate)["income_thousands"] - coef(turnout_bivariate)["income_thousands"]
 ```
 
-For some reason the OVB I calculated directly just now (OVB2) was negative rather than positive It should be positive, since omitting the religiosity variable increases the coefficient of income. But I'm not sure where the error is coming from. There's also some slight difference at the thousandths place (0.226 versus 0.228). Broadly speaking, yes the OVB formula predicts the difference between bivariate and multivariate income coefficients, but there are probably some things going on under the hood that I'm missing. 
+For some reason the OVB I calculated directly just now (OVB2) was negative rather than positive. It should be positive, since omitting the religiosity variable increases the coefficient of income. But I'm not sure where the error is coming from. There's also some slight difference at the thousandths place (0.226 versus 0.228). Broadly speaking, yes the OVB formula predicts the difference between bivariate and multivariate income coefficients, but there are probably some things going on under the hood that I'm missing. 
 
 
 **3c.** Based on the lecture slides' discussion of model specification:
@@ -189,7 +191,7 @@ We'll study two scenarios of omitted variable bias through simulation.
 
 **Scenario A: Confounding (Both X1 and X2 cause Y)**
 
-```{r scenarioA, eval=FALSE}
+```{r scenarioA}
 set.seed(789)
 n <- 1000
 x1 <- rnorm(n)
@@ -211,13 +213,13 @@ The true value is the coefficient in the CEF, 1.5.
 2. What is the estimated $\beta_{1}$ in the bivariate model? How biased is it?
 The estimated $\beta_1$ in the bivariate model is quite biased, almost double the real value (2.9 instead of 1.5). The bias is 
 
-```{r}
+```{r actual_OVB_scenarioA}
 coef(model_multivariate)["x1"] - coef(model_bivariate)["x1"]
 ```
 
 
 3. Use the OVB formula to calculate the expected bias. Does it match the actual bias?
-```{r, OVB_scenarioA}
+```{r, expected_OVB_scenarioA}
 2 * cov(x1, x2) / var(x1)
 
 ```
@@ -226,7 +228,7 @@ Just about! It's a little bit off in the hundredths and thousandths place.
 
 **Scenario B: Collider Bias (X2 is a common effect)**
 
-```{r scenarioB, eval=FALSE}
+```{r scenarioB}
 set.seed(789)
 n <- 1000
 
@@ -298,15 +300,17 @@ The lecture slides derive OLS using the plug-in principle and matrix algebra.
 **5a. Plug-in Principle:**
 1. Define the plug-in principle in your own words.
 
+Plug-in principle basically means we plug in the sample version of an quantity into a formula in place of the population version. So we can estimate the population mean by plugging in the sample mean, for instance. 
+
 **5b. Matrix Derivation:**
 The OLS estimator in matrix form is:
 $$\hat{\beta} = (X^TX)^{-1}X^Ty$$
 
 Using the turnout data with GDP and Temperature:
 
-```{r problem5b, eval=FALSE}
+```{r problem5b}
 # Load and clean data
-turnout <- read_csv("https://raw.githubusercontent.com/jnseawright/ps405/refs/heads/main/Data/turnout.csv")
+turnout <- read.csv("https://raw.githubusercontent.com/jnseawright/ps405/refs/heads/main/Data/turnout.csv")
 turnout_clean <- turnout[13:nrow(turnout), ]  # Remove NA rows as in slides
 
 # Create X matrix with intercept, GDP, Temperature
@@ -316,11 +320,40 @@ colnames(X) <- c("Intercept", "GDP", "Temperature")
 # Create y vector
 y <- turnout_clean$Turnout
 
-# Calculate OLS coefficients using matrix algebra
-
-
 # Compare with lm() output
 
 ```
+On the first try of this formula, I was warned about non-conformable arrays. It turns out for multiplying matrices you gotta use `%*%` to calm the thing down, and take two worked. But then on take three, I found that I had done everything wrong, because I'd used `^{-1}` instead of `solve()`. 
+
+Take three gave me an error saying that the "system is computationally singular". On a Google search, it appears this means that my columns in `solve(t(X) %*% X)`are not linearly independent. I am... not sure how that's possible. My formula for take three was as follows:
+
+`OLS_Coefs = solve(t(X) %*% X) %*% t(X) %*% y`
+
+Aha! Looking at the guide and my class notes, it seems I need to set some tolerance in `solve()`. This sets me up for takes four, five, and six, in which I tried to set tolerance and failed multiple times for unclear reasons. Ultimately I set the tolerance to zero and just saw what happened, and it worked, so I decided I was probably doing it backwards, and on take 8, set `tol=1e-40`. 
+
+
+```{r problem5b_ols_coefs_matrix}
+# Calculate OLS coefficients using matrix algebra
+OLS_Coefs = solve(t(X) %*% X, tol=1e-40) %*% t(X) %*% y
+```
+
+
+```{r}
+turnout_clean = as.data.frame(turnout_clean)
+turnout = as.data.frame(turnout)
+```
+
+
+```{r problem5b_linear_model}
+
+Turnout_lm = lm(Turnout ~ GDP + Temperature, data = turnout)
+coef(Turnout_lm)
+OLS_Coefs
+```
+After multiple tries made very embarrassing by the realization that the problem was, I hadn't capitalized Turnout in the variable name, we have some coefficients. And they are... not the same. 
+
+At least on take one, not the same at all. 
 
 1. Verify that your matrix calculation matches the `lm()` output.
+
+Finally on take 8: yes, the coefficients are the same. 
