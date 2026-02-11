@@ -1,0 +1,166 @@
+---
+title: "ProbSet 5, February 13"
+author: 
+  - Gideon Gordon
+  - <gideongordon2029@u.northwestern.edu>
+date: February 6, 2026
+date-format: "**[D]ue:** MMMM D, YYYY"
+format: 
+     pdf:
+       documentclass: article
+fontsize: 12pt
+urlcolor: blue
+number-sections: true
+geometry:
+      - left=1in
+      - right=1in
+      - top=1in
+      - bottom=1in
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+    - \usepackage{float}
+    - \floatplacement{figure}{t}
+    - \floatplacement{table}{t}
+    - \usepackage{flafter}
+    - \usepackage[T1]{fontenc}
+    - \usepackage[utf8]{inputenc}
+    - \usepackage{ragged2e}
+    - \usepackage{booktabs}
+    - \usepackage{amsmath}
+    - \usepackage{url}
+---
+
+**Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1687750](https://canvas.northwestern.edu/courses/245562/assignments/1687750)
+
+---
+  
+## Problem 1
+
+
+**1a.** In your own words, explain:
+1. The difference between residuals ($e_i$) and modeling errors ($\epsilon_i$)
+2. Why the sum of residuals in OLS regression equals zero when an intercept is included
+3. How $R^2$ measures model fit and what it represents
+
+**1b.** Using the Hibbs election data:
+  
+```{r problem1b, eval=FALSE}
+# Load data
+library(rosdata)
+data("hibbs")
+
+# Fit the models
+model_intercept <- lm(vote ~ 1, data = hibbs)  # Intercept only
+model_econ <- lm(vote ~ growth, data = hibbs)   # With growth
+```
+
+**Questions:**
+1. Verify that $\sum e_i = 0$ for both models.
+2. Calculate $R^2$ using the formula $R^2 = 1 - \frac{RSS}{TSS}$.
+3. Compare your calculation with the `summary()` output.
+
+**1c.** Limitations of $R^2$:
+  1. What happens to $R^2$ when you add more variables to a model, even irrelevant ones?
+  2. Why might a high $R^2$ not indicate a good model?
+
+---
+  
+## Problem 2
+
+**2a.**
+1. Write down the regression model in matrix form and explain each symbol.
+
+**2b.**
+  Create a multicollinear scenario:
+  
+```{r problem2b, eval=FALSE}
+# Create multicollinear data
+set.seed(123)
+n <- 100
+x1 <- rnorm(n)
+x2 <- 0.95*x1 + rnorm(n, sd = 0.1)  # Highly correlated with x1
+x3 <- rnorm(n)
+y <- 2 + 1.5*x1 + 0.8*x3 + rnorm(n)
+
+# Fit models
+model_collinear <- lm(y ~ x1 + x2 + x3)
+summary(model_collinear)
+
+# Check variance inflation factors (VIF)
+
+```
+
+**Questions:**
+  1. What happens to the standard errors when multicollinearity is present?
+  2. How do the VIF values indicate multicollinearity?
+  3. What are the practical implications for interpreting coefficients in the presence of multicollinearity?
+  
+---
+  
+## Problem 3
+
+Using the turnout data:
+  
+```{r problem3, eval=FALSE}
+# Calculate leverage (diagonal of hat matrix)
+model <- lm(Turnout ~ GDP + Temperature, data = turnout_clean)
+
+# Method 1: Using hatvalues()
+leverage1 <- hatvalues(model)
+
+# Method 2: Calculate manually
+
+
+# Compare
+
+
+# Identify high leverage points
+
+```
+
+**Questions:**
+1. What does leverage measure? Why do we care about high leverage points?
+2. What is the average leverage value? What's the theoretical value?
+3. Create a plot of leverage vs. observation index. Add a horizontal line at $2p/n$ (where p = number of parameters).
+
+---
+
+## Problem 4
+
+**4a.**
+1. Define DFBETA and Cook's Distance. What does each measure?
+2. What's the difference between an outlier and an influential point?
+
+**4b.**
+Using the turnout model:
+
+```{r problem4b, eval=FALSE}
+# Calculate DFBETA
+
+# Plot DFBETA for Temperature coefficient
+```
+
+**Questions:**
+1. Which observations are influential for the Temperature coefficient?
+2. What happens to the Temperature coefficient if you remove the most influential observation?
+3. Calculate Cook's Distance for all observations. Which observations have Cook's D > 0.5?
+
+**4c. Case Study Analysis:**
+Identify the most influential observation in your model and analyze it:
+
+```{r problem4c, eval=FALSE}
+# Find most influential observation
+
+# Analyze this observation
+
+# Run model without this observation
+
+# Compare coefficients
+```
+
+**Questions:**
+1. Why is this observation influential? Consider its leverage and residual.
+2. Should this observation be removed? What are the ethical and methodological considerations?
+3. What would you recommend to a researcher who found such an influential observation in their data?
+
