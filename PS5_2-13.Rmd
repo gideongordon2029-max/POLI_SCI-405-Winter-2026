@@ -186,27 +186,69 @@ When we have perfect multicollinearity, the regression will just fall apart. But
 
 Using the turnout data:
   
-```{r problem3, eval=FALSE}
+```{r problem3_setup}
 # Calculate leverage (diagonal of hat matrix)
+turnout = read.csv("/Users/gideon/Desktop/Desktop/Datasets/turnout.csv")
+turnout_clean = drop_na(turnout)
+
 model <- lm(Turnout ~ GDP + Temperature, data = turnout_clean)
+
+#turnout_matrix = 
+# data.frame(Year = turnout_clean$Year, 
+#           Temperature = turnout_clean$Temperature, 
+#           GDP = turnout_clean$GDP)
+
+BigX = model.matrix(model)
 
 # Method 1: Using hatvalues()
 leverage1 <- hatvalues(model)
 
 # Method 2: Calculate manually
-
+hat_matrix <- BigX %*% solve(t(BigX) %*% BigX, tol = 0) %*% t(BigX)
+leverage2 <- diag(hat_matrix)
 
 # Compare
+head(leverage1)
+head(leverage2)
+```
+```{r problem3_identify}
 
-
-# Identify high leverage points
+tail(leverage1)
+leverage_data = data.frame(leverage = leverage1)
+leverage_data %>% top_n(5)
 
 ```
+It looks like the top five were 15, 35, 36, 37, and 38. 
+
+Note that my initial try kept doing weird things so I tried to grab a matrix differently using `model.matrix`, relying in part on the answer given by Google's AI when I searched for information on the errors I was getting. This worked. 
 
 **Questions:**
 1. What does leverage measure? Why do we care about high leverage points?
+
+Leverage basically measures how much a certain observation influences the estimates for the data as a whole, which we can tell by seeing how much the coefficients change when that observation is excluded (the DFBETA) or in some other ways. 
+
 2. What is the average leverage value? What's the theoretical value?
+
+The mean leverage value for this data is 0.079. 
+```{r}
+mean(leverage1)
+```
+
+I'm not sure what theoretical values of leverage are --- it seems like leverage can only exist for actual data? 
+
 3. Create a plot of leverage vs. observation index. Add a horizontal line at $2p/n$ (where p = number of parameters).
+
+```{r}
+two_p_over_n = 6/nrow(turnout_clean)
+leverage_data = mutate(leverage_data, Year = turnout_clean$Year)
+
+ggplot(aes(y = leverage, x = 1:nrow(leverage_data)), data = leverage_data) +
+  labs(title = "Leverage of Each Election in the Turnout Analysis", x = "Observation Index", y = "Leverage") +
+  geom_hline(yintercept = two_p_over_n, color = "green") + 
+  geom_text(aes(label = Year), size = 3, check_overlap = TRUE) 
+
+
+```
 
 ---
 
@@ -214,21 +256,47 @@ leverage1 <- hatvalues(model)
 
 **4a.**
 1. Define DFBETA and Cook's Distance. What does each measure?
+The DFBETA for an observation is relative to a particular coefficient or coefficients; it measures how much a coefficient changes when that observation is removed. It's defined by $\hat{\beta} - \hat{\beta}_{(-i)}$, or  $(\mathbb X' \mathbb X)^{-1} \mathbf X_i \tilde{e}_i$. 
+Cook's Distance is a measure of "DFFIT", difference in fit, and measures the effect of an observation on all the variables at once, including the intercept. Cook's Distance is defined as $D_i = [(n - k - 1) / (k + 1)] \times (h_{ii} \tilde{e}^2_i)/ \hat{\mathbf e} ' \hat{\mathbf e}$.
+
 2. What's the difference between an outlier and an influential point?
+An outlier is far from the rest of the data, with a Y value pretty far from the Y-value predicted given its X-value, but might not play much of a role in the outcome. If an outlier is right over or right under the center of mass of the distribution, it won't shift the coefficients much in one direction or another. 
 
 **4b.**
 Using the turnout model:
 
 ```{r problem4b, eval=FALSE}
 # Calculate DFBETA
-
+dfbeta_frame = as.data.frame(dfbeta(model))
+dfbeta_temperature = data.frame(Year = leverage_data$Year, DFBETA = dfbeta_frame$Temperature)
 # Plot DFBETA for Temperature coefficient
+ggplot(aes(y = DFBETA, x = 1:nrow(dfbeta_temperature)), data = dfbeta_temperature) +
+  labs(title = "DFBETAs of Temperature in Each Election", x = "Observation Index", y = "DFBETA") +
+  geom_text(aes(label = Year), size = 3, check_overlap = TRUE) 
 ```
 
 **Questions:**
 1. Which observations are influential for the Temperature coefficient?
+The big years are 1880, 1888, 1900, and 1932. 1944 and 1996 are marginal. 
+
 2. What happens to the Temperature coefficient if you remove the most influential observation?
+```{r}
+turnout_clean_temppurge = turnout_clean[-c(2,4,7,15), ]
+model_temppurge <- lm(Turnout ~ GDP + Temperature, data = turnout_clean_temppurge)
+summary(model)
+summary(model_temppurge)
+```
+
+Oddly, with those observations removed, I get a larger temperature coefficient. But also, it doesn't seem to be significant anyhow. 
+
 3. Calculate Cook's Distance for all observations. Which observations have Cook's D > 0.5?
+
+```{r}
+cooksd_model = cooks.distance(model)
+which(cooksd_model >= 0.5)
+```
+
+Cook's Distance is a 
 
 **4c. Case Study Analysis:**
 Identify the most influential observation in your model and analyze it:
