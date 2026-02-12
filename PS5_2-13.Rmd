@@ -33,15 +33,29 @@ header-includes:
 
 **Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1687750](https://canvas.northwestern.edu/courses/245562/assignments/1687750)
 
----
-  
 ## Problem 1
 
-
 **1a.** In your own words, explain:
-1. The difference between residuals ($e_i$) and modeling errors ($\epsilon_i$)
-2. Why the sum of residuals in OLS regression equals zero when an intercept is included
-3. How $R^2$ measures model fit and what it represents
+1. The difference between residuals ($e_i$) and modeling errors ($\epsilon_i$).
+A residual is what you get even when you correctly estimate the expected value --- because the expected value, while it can be exactly correct as an expectation with an infinite population, does not match any particular outcome of the formula. So a residual is the distance between a particular outcome and the expected value at the population level. In an infinite population the expectation is exactly correct, but as long as the CEF allows for any variation at all, a residual will still exist. Because the residual is a gap between observed data and estimates, it is impossible to get rid of completely even with a perfect population-level dataset. When we write $e_i$ we're looking for the residual at a given value of $X$; the gap between the value $y_i$ we observe when $x=i$ and the value of $y_i$ predicted by our model for $x=i$. 
+
+The modeling error $\epsilon_i$ is the error that represents the gap between our estimates and the real distribution of data. We know what the residuals are for a given model, since they come from two quantities we know (the observed information and our estimate). We really don't know for sure what our modeling error is --- what the gap is, for example, between our estimated CEF and the actual CEF. When we say $\epsilon_i$ we're talking about the gap between the $y_i$ we estimate from our data and the $y_i$ we would expect, if we had the actual CEF available to us. But we don't. We only know what we can estimate from the data, so we can't really know what the modeling error is and can never get rid of it. It haunts us, like a heart beating under the floorboards in a Poe short story, ever present but impossible to find. 
+
+2. Why the sum of residuals in OLS regression equals zero when an intercept is included.
+So, when an intercept is *not* included in an OLS regression, we get a regression line which minimizes residuals, but has to pass through the origin (because we can't include a constant term to give us a value of $\hat{y}$ when $x=0$). Since we're stuck running the regression through the origin, we'll find a regression line with a slope to minimize residuals. Since the regression is farther to one side of the true BLP than to the other, the residuals above or below the line will be bigger; there will be an imbalance in the residuals. This will make the *sum* of residuals (not necessarily the sum of squared residuals) lean to one side or the other, since the negative residuals will not counterbalance the positive residuals.
+
+So let's say the actual BLP is $y = x + 5$, with observations $(1,6)$, $(1,1)$, $(1,11)$, $(2,8)$, $(2,6)$, $(3,8)$, $(3,-1)$, $(3,17)$. If we just drew a line without an intercept, we would note that the estimated expected values at $y_1$, $y_2$ and $y_3$ are respectively $y_1 = 6$, $y_2 = 7$, and $y_3 = 8$. But the best we can do, without an intercept available, is note that an increase of 1 in $x$ produces an increase of 1 in $y$. The residuals resulting from this estimate would be, respectively, 5, 0, 10, 6, 4, 5, -4, and 14, summing to 40. 
+
+Adding an intercept fixes this imbalance. It removes the restraint of having to go through the origin, leaving us free to find the true BLP, where the negative residuals balance the positive ones. 
+
+If we add $+5$ to the BLP estimate above, we can estimate the real expected values, and our residuals follow suit; residuals would now be, respectively, 0, -5, 5, 1, -1, 0, -9, and 9, and they would sum to 0. Note that this does not remove the sum of *squared* residuals, since squaring our residuals gets them to all be positive. So our squared residuals for $y = x + 5$ would be 0, 25, 25, 1, 1, 0, 81, and 81, with a sum of 216. On the other hand our squared residuals for the previous line, $y = x$, would be 25, 0, 100, 36, 16, 25, 16, and 196, summing to 414. So we have reduced our sum of squared residuals by adding an intercept, but not to zero. It would be very unlikely to reduce our squared residuals to zero in any case. 
+
+3. How $R^2$ measures model fit and what it represents.
+$R^2$ is basically a measurement of how well a model fits, relative to a much worse model where we don't bother with any fancy OLS math and just assume that the BLP is a constant equal to the mean value of $y$. 
+
+Let's go back to $y = x + 5$. If we want to know how much better this BLP is than an estimate not involving scary numbers, we can shrug and model this as $y = 56/7 = 8$ (56 is the sum of y-values, and we have 7 observations). Then we can do residuals for this very crappy model, which will be -2, -7, 3, 0, -2, 0, -9, 9, summing to -8. Our squared residuals then will be 4, 49, 9, 0, 4, 0, 81, and 81, summing to 228. 
+
+So yeah, our model with a constant has bigger squared distances between observations and the line (228) than our model with an actual formula (216). $R^2$ is how we can tell exactly *how* much worse the constant model is. $R^2 = 1 - \frac{RSS}{TSS}$, where $RSS$ is the sum of squared residuals (of an actual model) and $TSS$ is the total squared sums (of distances from our crappy constant). In this case, $R^2 = 1 - \frac{216}{228}$, which is $1 - .94$ which is $0.06$. So, in this case, my BLP $y = x + 5$ does not improve that much on just drawing a straight line, but it does improve on it a little. Maybe there's some variation in $y$ that isn't explained by $x$ alone; further research needed; please give me grant funding. 
 
 **1b.** Using the Hibbs election data:
   
@@ -57,12 +71,59 @@ model_econ <- lm(vote ~ growth, data = hibbs)   # With growth
 
 **Questions:**
 1. Verify that $\sum e_i = 0$ for both models.
+
+```{r problem1b1}
+sum(residuals(model_intercept))
+sum(residuals(model_econ))
+```
+I mean basically yeah. Close enough for government work. Especially under our present government. 
+
 2. Calculate $R^2$ using the formula $R^2 = 1 - \frac{RSS}{TSS}$.
+
+```{r problem1b2}
+1 - sum((residuals(model_econ)^2))/sum((residuals(model_intercept)^2))
+```
+
+Yep, we got an R2 of 0.579. 
+
 3. Compare your calculation with the `summary()` output.
 
+```{r problem1b3}
+summary(model_econ)$r.squared
+```
+
+Precisely identical. 
+
 **1c.** Limitations of $R^2$:
-  1. What happens to $R^2$ when you add more variables to a model, even irrelevant ones?
-  2. Why might a high $R^2$ not indicate a good model?
+1. What happens to $R^2$ when you add more variables to a model, even irrelevant ones?
+
+No matter what happens, when you add variables, $R^2$ goes up. So for example, we can create `model_superstitious`, which includes the numeric value of the first letter in the incumbent's surname as a separate variable. This is because I believe that names have a great magical influence over our fates. 
+
+```{r problem1c1_prep}
+library(dplyr)
+hibbs <- mutate(hibbs, first_letter_incumbent = substr(inc_party_candidate, start = 1, stop = 1))
+hibbs <- mutate(hibbs, first_letter_incumbent = match(first_letter_incumbent, LETTERS))
+```
+
+
+```{r problem1c1_actual}
+model_superstitious <- lm(vote ~ growth + first_letter_incumbent, data = hibbs)  
+summary(model_superstitious)$r.squared
+```
+
+Hey look! I went from an $R^2$ of 0.57 to an $R^2$ of 0.59! 2% more of the variation in vote totals is explained if we control for the mystical effect of the first letter of a surname on the fate of a candidate. I would like my Nobel Prize in Political Science now. (Is that not a thing? The spirits are telling me that's not a thing.)
+
+2. Why might a high $R^2$ not indicate a good model?
+
+As the example of `model_superstitious` indicates, you can just add variables ad nauseam to increase $R^2$. Additional variables will most likely capture random variation, even by pure chance. Adjusted $R^2$ helps with this by only increasing $R^2$ when a new variable contributes more than random chance... and penalizes $R^2$ otherwise. 
+
+```{r problem1c2}
+summary(model_superstitious)$adj.r.squared
+```
+
+Darn, guess I won't be getting a Nobel in political science today. 
+
+The main thing is, maximizing $R^2$ doesn't actually tell you anything about whether a relationship is meaningful, what direction things go, whether a relationship is statistically different from nonexistent. If you throw covariate pasta at the scatterplot, some of it will stick. That doesn't actually mean anything for understanding the world we live in. 
 
 ---
   
@@ -71,9 +132,24 @@ model_econ <- lm(vote ~ growth, data = hibbs)   # With growth
 **2a.**
 1. Write down the regression model in matrix form and explain each symbol.
 
+$$y = X\beta + \epsilon$$
+- $y$ is the vector of values of our outcome of interest. 
+
+- $X$ is our matrix of covariates (with the first row usually a row of 1s for our intercept). Each column is a list of values of covariates in different cases. 
+
+- $\beta$ is our vector of coefficients, which we can estimate with the equation $\hat{\beta}_{OLS} = (\mathbf X^T \mathbf X)^{-1} (\mathbf X^T \mathbf Y)$. 
+
+- $\epsilon$ is our error term. It's how much random nonsense gets thrown in between the amount we predict with our coefficients and the amount we get on $y$. There is no escaping it. 
+
 **2b.**
   Create a multicollinear scenario:
-  
+
+```{r problem2b_prep, eval=FALSE, cache=TRUE}
+install.packages("car")
+library(car)
+```
+
+
 ```{r problem2b, eval=FALSE}
 # Create multicollinear data
 set.seed(123)
@@ -88,14 +164,22 @@ model_collinear <- lm(y ~ x1 + x2 + x3)
 summary(model_collinear)
 
 # Check variance inflation factors (VIF)
-
+as.matrix(x1, x2, x3)
+vif(model_collinear)
 ```
 
 **Questions:**
-  1. What happens to the standard errors when multicollinearity is present?
-  2. How do the VIF values indicate multicollinearity?
-  3. What are the practical implications for interpreting coefficients in the presence of multicollinearity?
-  
+1. What happens to the standard errors when multicollinearity is present?
+They get way bigger, because we have two variables basically splitting up the same explanatory task so neither one is given a full chance to deal with it. Also, even though `x1` actually does contribute to `y` and `x2` does not, there's no way for the formula to tell that, so both end up a mess. 
+
+2. How do the VIF values indicate multicollinearity?
+To level with you, I don't think we talked about the VIF in class. I might be wrong. But some Googling reveals that the VIF is given by the ratio of the variance of the model with all the parameters, to the variance given with a model using *only* a certain covariate. So basically, does the variance of this estimate get less absurd if we leave out all other parameters, and if so, how much less absurd. 
+
+We don't know *which* other parameters might be covariates, but we can at least tell that a parameter has at least one covariate. And in this case we see there are only two parameters with crazy high VIFs, so we have a pretty good sense. 
+
+3. What are the practical implications for interpreting coefficients in the presence of multicollinearity?
+When we have perfect multicollinearity, the regression will just fall apart. But if the multicollinearity is less perfect, it might dilute the effects of a variable and inappropriately lead us to confirm the null hypothesis (since error bars get really big when multicollinearity is in play, and they get bigger the more multicollinear our findings are). An actual relationship will suddenly appear spuriously to be spurious. 
+
 ---
   
 ## Problem 3
