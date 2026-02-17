@@ -59,9 +59,11 @@ So yeah, our model with a constant has bigger squared distances between observat
 
 **1b.** Using the Hibbs election data:
   
-```{r problem1b, eval=FALSE}
+```{r problem1b}
 # Load data
 library(rosdata)
+library(tidyr)
+library(ggplot2)
 data("hibbs")
 
 # Fit the models
@@ -144,13 +146,9 @@ $$y = X\beta + \epsilon$$
 **2b.**
   Create a multicollinear scenario:
 
-```{r problem2b_prep, eval=FALSE, cache=TRUE}
-install.packages("car")
+```{r problem2b}
 library(car)
-```
 
-
-```{r problem2b, eval=FALSE}
 # Create multicollinear data
 set.seed(123)
 n <- 100
@@ -164,7 +162,6 @@ model_collinear <- lm(y ~ x1 + x2 + x3)
 summary(model_collinear)
 
 # Check variance inflation factors (VIF)
-as.matrix(x1, x2, x3)
 vif(model_collinear)
 ```
 
@@ -215,7 +212,7 @@ head(leverage2)
 
 tail(leverage1)
 leverage_data = data.frame(leverage = leverage1)
-leverage_data %>% top_n(5)
+leverage_data %>% top_n(9)
 
 ```
 It looks like the top five were 15, 35, 36, 37, and 38. 
@@ -291,28 +288,53 @@ Oddly, with those observations removed, I get a larger temperature coefficient. 
 
 3. Calculate Cook's Distance for all observations. Which observations have Cook's D > 0.5?
 
-```{r}
-cooksd_model = cooks.distance(model)
-which(cooksd_model >= 0.5)
+```{r problem4b3_1}
+cooksd_model = data.frame(Year = turnout_clean$Year, Cooks_Distance = cooks.distance(model))
+big_cooks = filter(cooksd_model, Cooks_Distance > 0.05)
 ```
 
-Cook's Distance is a 
+Cook's Distance for all the observations is less than 0.5. Only seven observations even have Cook's D > *0.05*; these are 1876, 1880, 1888, 1900, 1932, 2020, and 2024. 
 
 **4c. Case Study Analysis:**
 Identify the most influential observation in your model and analyze it:
 
-```{r problem4c, eval=FALSE}
+```{r problem4c_1}
 # Find most influential observation
+Biggest_Cooks = cooksd_model$Year[which.max(cooksd_model$Cooks_Distance)]
 
 # Analyze this observation
+leverage_data$leverage[2]
+residuals(model)[2]
 
 # Run model without this observation
+turnout_clean_infpurge = turnout_clean[-c(2), ]
+model_infpurge <- lm(Turnout ~ GDP + Temperature, data = turnout_clean_infpurge)
 
 # Compare coefficients
+coef(model_infpurge)
+coef(model)
 ```
+
+```{r problem4c_2, eval = FALSE}
+summary(model_infpurge)
+summary(model)
+```
+I did a closer look to see what the p-values are; generally not high in either case. 
 
 **Questions:**
 1. Why is this observation influential? Consider its leverage and residual.
+
+The election of 1880 (second observation) has a leverage of ~0.125, and a residual of 0.169. It's not one of the highest-leverage observations (it's the ninth-highest leverage observation, specifically), and its residual is relatively high but not the highest. But between those two factors, it seems pretty important, with a Cook's Distance of 0.184.  
+
 2. Should this observation be removed? What are the ethical and methodological considerations?
+
+So, 1880 was a weird year. Presidential elections were direct for the first time, so it may be unusual in that regard. It also had a weird winter. Removing it decreases the effect of temperature by a full order of magnitude, reducing its effects to almost nothing. I think this may be appropriate, though, because a freak weather event coincided with a freak political event, which magnifies the apparent effects. 
+
+I would suggest removing this observation, though our n is already pretty tiny. If I were doing this for real, I would worry a bit more, but in either case this is a catastrophically high p-value. 
+
 3. What would you recommend to a researcher who found such an influential observation in their data?
+
+I would suggest that someone should remove it, but explain at length why that particular case is *so* exceptional that it does not have a similar causal process to other cases. 
+
+
 
