@@ -1,0 +1,129 @@
+---
+title: "PS6"
+format: html
+editor: visual
+---
+
+# Problem 1
+## 1a. Using the democracy and internet access data from the lecture:
+```{r}
+# Load data and run models
+library(rqog)
+qogts <- read_qog(which_data = "standard", data_type = "time-series")
+
+# Model 1: Basic model with homoskedastic errors
+model1 <- lm(vdem_libdem ~ wdi_broadb + I(log(wdi_gdpcappppcon2017)), 
+             data = qogts)
+
+# Model 2: Robust standard errors
+```
+
+Questions: 
+1. Extract and compare the standard errors. Which are larger? 
+
+2. Calculate the t-statistics manually (i.e., using a calculator or direct math in R and not just summary): 𝑡=𝛽̂𝑆𝐸(𝛽)
+
+3. Compute p-values for both sets of standard errors. 
+
+4. At 𝛼 = 0.05, would you reject the null hypothesis for each coefficient in both models?
+
+## 1b. The lecture notes that with small samples and normal errors, we use the t-distribution.
+
+What is the degrees of freedom for the t-distribution in your model?
+How do t-critical values compare to z-critical values for your sample size? How much difference does it make to choose the t versus normal distribution at this sample size?
+
+# Problem 2
+## 2a. 
+1. In your own words, explain the multiple comparisons problem 
+2. Define: 
+- Family-Wise Error Rate (FWER) 
+- False Discovery Rate (FDR)
+
+## 2b. Simulate the multiple comparisons problem:
+```{r}
+set.seed(123)
+n_tests <- 20
+n_obs <- 100
+alpha <- 0.05
+
+# Create matrix of 20 independent tests (all null true)
+p_values <- matrix(NA, nrow = 1000, ncol = n_tests)
+
+for (i in 1:1000) {
+  for (j in 1:n_tests) {
+    # Generate independent data
+    x <- rnorm(n_obs)
+    y <- rnorm(n_obs)  # No relationship
+    # Run regression and extract p-value for slope
+    p_values[i, j] <- summary(lm(y ~ x))$coefficients[2, 4]
+  }
+}
+
+# Analyze results
+false_positives <- rowSums(p_values < alpha)
+mean_fp <- mean(false_positives)
+prop_at_least_one <- mean(false_positives > 0)
+```
+
+Questions: 
+1. What **proportion of simulations have at least one false positive**?
+This is the Family-Wise Error Rate. 
+
+2. What is the **average number of false positives** per simulation? 
+This is the False Discovery Rate. 
+
+3. **Create a histogram** of the number of false positives across simulations.
+
+## 2c. Now simulate correlated tests:
+
+```{r}
+# Create correlated predictors
+set.seed(123)
+n_tests <- 20
+n_obs <- 100
+
+# Generate correlated X matrix
+library(MASS)
+mu <- rep(0, n_tests)
+Sigma <- diag(n_tests)
+for (i in 1:n_tests) {
+  for (j in 1:n_tests) {
+    Sigma[i, j] <- 0.7^abs(i-j)  # AR(1) correlation
+  }
+}
+
+p_values_cor <- matrix(NA, nrow = 1000, ncol = n_tests)
+
+for (i in 1:1000) {
+  # Generate correlated predictors
+  X <- mvrnorm(n_obs, mu, Sigma)
+  # Generate Y with no relationship to any X
+  y <- rnorm(n_obs)
+  
+  # Run all regressions
+  for (j in 1:n_tests) {
+    p_values_cor[i, j] <- summary(lm(y ~ X[, j]))$coefficients[2, 4]
+  }
+}
+
+# Compare with independent case
+false_positives_cor <- rowSums(p_values_cor < alpha)
+prop_cor <- mean(false_positives_cor > 0)
+```
+
+Questions: 
+1. How does correlation affect the multiple comparisons problem?
+
+
+# Problem 3
+## 3a. Find a published political science article that reports multiple hypothesis tests (e.g., a table with many coefficients and stars).
+1. Count how many hypothesis tests are reported.
+2. Calculate the expected number of false positives if all nulls were true.
+3. Would multiple testing corrections change their conclusions?
+
+## 3b. You’re designing a study to test 15 different hypotheses about voter behavior.
+
+1. How would you adjust your analysis plan to account for multiple comparisons?
+2. Would you use FWER or FDR control? Justify your choice.
+3. How would sample size affect your decision?
+4. What would you report in the methods section about multiple testing?
