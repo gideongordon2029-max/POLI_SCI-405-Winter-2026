@@ -4,9 +4,16 @@ format: html
 editor: visual
 ---
 
+# Setup
+
+```{r}
+library(estimatr)
+```
+
+
 # Problem 1
 ## 1a. Using the democracy and internet access data from the lecture:
-```{r}
+```{r, cache=TRUE}
 # Load data and run models
 library(rqog)
 qogts <- read_qog(which_data = "standard", data_type = "time-series")
@@ -16,14 +23,52 @@ model1 <- lm(vdem_libdem ~ wdi_broadb + I(log(wdi_gdpcappppcon2017)),
              data = qogts)
 
 # Model 2: Robust standard errors
+model2 <- lm_robust(vdem_libdem ~ wdi_broadb + I(log(wdi_gdpcappppcon2017)), 
+             data = qogts)
+
+summary(model1)
+summary(model2)
+
 ```
 
 Questions: 
 1. Extract and compare the standard errors. Which are larger? 
 
-2. Calculate the t-statistics manually (i.e., using a calculator or direct math in R and not just summary): 𝑡=𝛽̂𝑆𝐸(𝛽)
+```{r}
+coef(summary(model1))[, "Std. Error"]
+coef(summary(model2))[, "Std. Error"]
+
+se_broadb1 = coef(summary(model1))[, "Std. Error"][2]
+se_log_gdp_per_cap1 = coef(summary(model1))[, "Std. Error"][3]
+se_broadb2 = coef(summary(model2))[, "Std. Error"][2]
+se_log_gdp_per_cap2 = coef(summary(model2))[, "Std. Error"][3]
+```
+The standard errors for the latter, the model with robust standard errors, are substantially larger. 
+
+2. Calculate the t-statistics manually (i.e., using a calculator or direct math in R and not just summary): 
+
+I'm doing a t-test here. 
+$t = \hat{\beta} - \beta_0 / se (\hat{\beta}) / \sqrt{n}$
+
+Beta-0 is our null hypothesis that the coefficient is zero, so this boils down to $\hat{\beta} / se (\hat{\beta})$. 
+
+```{r}
+beta_wdi_broadb1 = coef(summary(model1))[2,1]
+beta_log_gdp_per_cap1 = coef(summary(model1))[3,1]
+
+beta_wdi_broadb2 = coef(summary(model2))[2,1]
+beta_log_gdp_per_cap2 = coef(summary(model2))[3,1]
+
+t_broadband_1 = beta_wdi_broadb1 / se_broadb1
+t_broadband_2 = beta_wdi_broadb2 / se_broadb2
+
+t_log_gdp_per_cap1 = beta_log_gdp_per_cap1 / se_log_gdp_per_cap1
+t_log_gdp_per_cap2 = beta_log_gdp_per_cap2 / se_log_gdp_per_cap2
+```
+So what I get out of this is a metric of how many standard errors our values are from zero. That's handy. 
 
 3. Compute p-values for both sets of standard errors. 
+
 
 4. At 𝛼 = 0.05, would you reject the null hypothesis for each coefficient in both models?
 
