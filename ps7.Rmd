@@ -1,0 +1,153 @@
+---
+title: "ProbSet 7, February 27"
+author: 
+  - Gideon Gordon
+  - <gideongordon2029@u.northwestern.edu>
+date: February 27, 2026
+date-format: "**[D]ue:** MMMM D, YYYY"
+format: 
+     pdf:
+       documentclass: article
+fontsize: 12pt
+urlcolor: blue
+number-sections: true
+geometry:
+      - left=1in
+      - right=1in
+      - top=1in
+      - bottom=1in
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+    - \usepackage{float}
+    - \floatplacement{figure}{t}
+    - \floatplacement{table}{t}
+    - \usepackage{flafter}
+    - \usepackage[T1]{fontenc}
+    - \usepackage[utf8]{inputenc}
+    - \usepackage{ragged2e}
+    - \usepackage{booktabs}
+    - \usepackage{amsmath}
+    - \usepackage{url}
+---
+
+**Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1687752](https://canvas.northwestern.edu/courses/245562/assignments/1687752)
+
+---
+
+# Problem 1
+
+
+1. Define statistical power in your own words.
+2. Explain the relationship between Type I error ($\alpha$), Type II error ($\beta$), and power.
+
+
+---
+
+# Problem 2
+
+## 2a.
+
+Simulate power for different scenarios:
+
+```{r problem2a, eval=FALSE}
+# Complete this code to simulate power for different sample sizes
+
+simulate_power <- function(true_effect, n, sigma = 1, alpha = 0.05, n_sim = 1000) {
+  # Your code here:
+  # 1. Simulate n_sim datasets with given parameters
+  # 2. For each dataset, run linear regression
+  # 3. Calculate proportion of simulations where p < alpha
+  # 4. Return power estimate
+}
+
+# Test for different sample sizes
+sample_sizes <- c(50, 100, 200, 400, 800)
+true_effect <- 0.2
+
+# Create a data frame with power estimates for each sample size
+power_results <- data.frame()
+for (n in sample_sizes) {
+  # Your code here
+}
+
+# Create visualization
+library(ggplot2)
+# Plot power vs sample size
+```
+
+**Questions:**
+1. What sample size is needed to achieve 80% power for detecting an effect of 0.2?
+2. How does changing the true effect size to 0.4 affect the required sample size?
+3. What happens to power if you double the variance (sigma)?
+
+## 2b.
+
+**Questions:**
+1. What is the "winner's curse" and why does it occur?
+2. How does sample size affect the magnitude of the winner's curse?
+
+
+---
+
+# Problem 3
+
+## 3a.
+
+1. Define and distinguish between:
+   - Moderator variable
+   - Mediator variable
+2. Draw path diagrams for both (like in the slides)
+3. Provide a political science example of each
+
+## 3b.
+
+Using the QOG data from the slides:
+
+```{r problem3b, eval=FALSE}
+library(rqog)
+library(dplyr)
+library(ggplot2)
+
+# Load and prepare data
+qog_data <- read_qog(which_data = "standard", data_type = "time-series")
+
+# Create analysis dataset
+analysis_data <- qog_data %>%
+  select(
+    country = cname,
+    year = year,
+    democracy = vdem_libdem,
+    gdp_pc = gle_cgdpc,
+    colonial = ht_colonial
+  ) %>%
+  filter(!is.na(democracy), !is.na(gdp_pc), !is.na(colonial)) %>%
+  group_by(country) %>%
+  filter(year == max(year)) %>%
+  ungroup() %>%
+  mutate(
+    log_gdp = log(gdp_pc),
+    colonized = ifelse(colonial > 0, 1, 0)
+  )
+
+# Your tasks:
+# 1. Run two models:
+#    a. Main effects only: democracy ~ log_gdp + colonized
+#    b. With interaction: democracy ~ log_gdp * colonized
+
+# 2. Calculate and interpret:
+#    a. The marginal effect of log_gdp when colonized = 0
+#    b. The marginal effect of log_gdp when colonized = 1
+#    c. Test whether these effects are statistically different
+
+# 3. Create visualization:
+#    a. Plot with two regression lines (one for each colonized status)
+#    b. Include confidence bands
+#    c. Add appropriate labels and title
+```
+
+**Questions:**
+1. How does the relationship between GDP and democracy differ between former colonies and never-colonized countries?
+2. Is the interaction statistically significant? What does this mean substantively?
+
+
