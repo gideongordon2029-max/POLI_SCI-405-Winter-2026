@@ -105,7 +105,7 @@ for (i in sample_sizes){
   power = simulate_power(true_effect = 0.2, sample_size = sample_sizes[count], sigma = 1, alpha = 0.05, n_sim = 1000)
   powers_0.2 = c(powers_0.2, power)
 }
-simulated_power_sample_size_0.2_sigma1 = data.frame(sample_sizes, powers) 
+simulated_power_sample_size_0.2 = data.frame(sample_sizes, powers_0.2)
 
 count = 0
 powers_0.4 = c()
@@ -114,7 +114,7 @@ for (i in sample_sizes){
   power = simulate_power(true_effect = 0.4, sample_size = sample_sizes[count], sigma = 1, alpha = 0.05, n_sim = 1000)
   powers_0.4 = c(powers_0.4, power)
 }
-simulated_power_sample_size_0.4_sigma1 = data.frame(sample_sizes, powers_0.4) 
+simulated_power_sample_size_0.4 = data.frame(sample_sizes, powers_0.4) 
 
 
 ```
@@ -209,14 +209,71 @@ If you can increase your sample size, you reduce the magnitude of the problem, s
 1. Define and distinguish between:
    - Moderator variable
    - Mediator variable
-2. Draw path diagrams for both (like in the slides)
-3. Provide a political science example of each
+2. Draw path diagrams for both (like in the slides).
+
+First, let's include a moderator...
+```{r, echo = FALSE, eval=TRUE, out.width="80%", fig.retina = 1, fig.align='center'}
+library(DiagrammeR)
+library(DiagrammeRsvg)
+
+# Moderator diagram
+moderator_diagram <- grViz("
+digraph {
+  graph [rankdir = LR, layout = dot]
+  node [shape = box, style = filled, fillcolor = lightblue]
+  
+  X [label = 'X (My grades on the quiz)']
+  Y [label = 'Y (My mood at end of day)']
+  M [label = 'M (Whether I ate breakfast today)', fillcolor = lightyellow]
+  
+  // Main effect
+  X -> Y [label = 'β₁']
+  
+  // Moderation effect
+  M -> X [label = 'Moderates', style = dashed, color = red]
+  
+  // Direct effect of moderator
+  M -> Y [label = 'β₂']
+}
+")
+
+# Display in RMarkdown
+moderator_diagram
+```
+```{r, echo=FALSE, eval=TRUE, out.width="80%", fig.retina = 1, fig.align='center'}
+# Mediator diagram
+mediator_diagram <- grViz("
+digraph {
+  graph [rankdir = LR, layout = dot]
+  node [shape = box, style = filled, fillcolor = lightblue]
+  
+  X [label = 'X (Whether I had breakfast)']
+  Y [label = 'Y (My mood at end of day)']
+  M [label = 'M (My energy during the day)', fillcolor = lightyellow]
+  
+  // Effect of X on mediator
+  X -> M [label = 'α']
+  
+  // Effect of mediator on Y
+  M -> Y [label = 'β']
+}
+")
+
+# Display in RMarkdown
+mediator_diagram
+```
+
+3. Provide a political science example of each.
+
+A mediator: According to White and Laird, close ties to other Black people are what translate broader injunctive norms into "racialized social constraint" in the political behaviors of Black people. So, social norms influence individual behavior *through* homophilous social networks.  
+
+A moderator: According to Sarah Parkinson's study of Palestinian insurgency in Lebanon, the structure of preexisting social networks *influences* the effect of state repression on political structure.
 
 ## 3b.
 
 Using the QOG data from the slides:
 
-```{r problem3b, eval=FALSE}
+```{r problem3b1}
 library(rqog)
 library(dplyr)
 library(ggplot2)
@@ -241,26 +298,49 @@ analysis_data <- qog_data %>%
     log_gdp = log(gdp_pc),
     colonized = ifelse(colonial > 0, 1, 0)
   )
+```
 
+```{r problem3b2}
+library(marginaleffects)
+library(ggeffects)
 # Your tasks:
 # 1. Run two models:
 #    a. Main effects only: democracy ~ log_gdp + colonized
 #    b. With interaction: democracy ~ log_gdp * colonized
 
+main_effects = lm(democracy ~ log_gdp + colonized, data = analysis_data)
+interaction_effects = lm(democracy ~ log_gdp + colonized + log_gdp*colonized, data = analysis_data)
+
+summary(main_effects)
+summary(interaction_effects)
+```
+
+```{r}
 # 2. Calculate and interpret:
 #    a. The marginal effect of log_gdp when colonized = 0
+
 #    b. The marginal effect of log_gdp when colonized = 1
+
 #    c. Test whether these effects are statistically different
 
+```
+
+
+```{r}
 # 3. Create visualization:
 #    a. Plot with two regression lines (one for each colonized status)
+
 #    b. Include confidence bands
+
 #    c. Add appropriate labels and title
+
 ```
 
 **Questions:**
 1. How does the relationship between GDP and democracy differ between former colonies and never-colonized countries?
 
+
 2. Is the interaction statistically significant? What does this mean substantively?
+
 
 
