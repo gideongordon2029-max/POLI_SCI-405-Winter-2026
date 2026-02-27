@@ -6,7 +6,7 @@ author:
 date: February 27, 2026
 date-format: "**[D]ue:** MMMM D, YYYY"
 format: 
-     pdf:
+     html:
        documentclass: article
 fontsize: 12pt
 urlcolor: blue
@@ -16,19 +16,6 @@ geometry:
       - right=1in
       - top=1in
       - bottom=1in
-header-includes:
-    - \usepackage{setspace}
-    - \doublespacing
-    - \usepackage{float}
-    - \floatplacement{figure}{t}
-    - \floatplacement{table}{t}
-    - \usepackage{flafter}
-    - \usepackage[T1]{fontenc}
-    - \usepackage[utf8]{inputenc}
-    - \usepackage{ragged2e}
-    - \usepackage{booktabs}
-    - \usepackage{amsmath}
-    - \usepackage{url}
 ---
 
 **Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1687752](https://canvas.northwestern.edu/courses/245562/assignments/1687752)
@@ -301,8 +288,8 @@ analysis_data <- qog_data %>%
 ```
 
 ```{r problem3b2}
-library(marginaleffects)
-library(ggeffects)
+library(sjPlot)
+library(sjmisc)
 # Your tasks:
 # 1. Run two models:
 #    a. Main effects only: democracy ~ log_gdp + colonized
@@ -322,14 +309,56 @@ summary(interaction_effects)
 #    b. The marginal effect of log_gdp when colonized = 1
 
 #    c. Test whether these effects are statistically different
-
+var(analysis_data$democracy)*1.92
 ```
 
+When `colonized` = 0, the marginal effect of `log_gdp` (the effect of a one-unit increase) is 0.175. When `colonized` = 1, the effect is 0.175 for a one unit increase in `log_gdp`, and - 0.131 for a one-unit increase in `log_gdp*colonized`. 
 
-```{r}
+I'm not sure how to test if these are statistically different. The variance in democracy in the data is 0.0728. I'm going to steal from Professor Seawright again. 
+
+```{r, echo=FALSE}
+meplot <- function(model,var1,var2,int,vcov,ci=.95,
+                   xlab=var2,ylab=paste("Marginal Effect of",var1),
+                   main="Marginal Effect Plot",
+                   me_lty=1,me_lwd=1,me_col="black",
+                   ci_lty=1,ci_lwd=.5,ci_col="black",
+                   yint_lty=2,yint_lwd=1,yint_col="black"){
+  require(ggplot2)
+  alpha <- 1-ci
+  z <- qnorm(1-alpha/2)
+  beta.hat <- coef(model)
+  cov <- vcov
+  z0 <- seq(min(model.frame(model)[,var2],na.rm=T),max(model.frame(model)[,var2],na.rm=T),length.out=1000)
+  dy.dx <- beta.hat[var1] + beta.hat[int]*z0
+  se.dy.dx <- sqrt(cov[var1,var1] + z0^2*cov[nrow(cov),ncol(cov)] + 2*z0*cov[var1,ncol(cov)])
+  upr <- dy.dx + z*se.dy.dx
+  lwr <- dy.dx - z*se.dy.dx
+  ggplot(data=NULL,aes(x=z0, y=dy.dx)) +
+    labs(x=xlab,y=ylab,title=main) +
+    geom_line(aes(z0, dy.dx),size = me_lwd, 
+              linetype = me_lty, 
+              color = me_col) +
+    geom_line(aes(z0, lwr), size = ci_lwd, 
+              linetype = ci_lty, 
+              color = ci_col) +
+    geom_line(aes(z0, upr), size = ci_lwd, 
+              linetype = ci_lty, 
+              color = ci_col) +
+    geom_hline(yintercept=0,linetype=yint_lty,
+               size=yint_lwd,
+               color=yint_col)}
+```
+
+```{r, echo=FALSE}
+meplot(interaction_effects, var1 = "log_gdp", var2 = "colonized", int = "log_gdp:colonized", vcov = vcov(interaction_effects))
+```
+Having shamelessly pilfered this convenient program, I can tell that the marginal effect of `log_gdp` when `colonized` is 0 is about 0.17, with a lower bound at about 0.125, while the marginal effect of `log_gdp` when `colonized` is 1 is about 0.05, with an upper bound at about 0.07, so the two values do not overlap and appear to be statistically different. 
+
+```{r, echo=FALSE}
 # 3. Create visualization:
 #    a. Plot with two regression lines (one for each colonized status)
-
+your_theory_is_eurocentric = plot_model(model = interaction_effects, type = "pred", terms = c("log_gdp", "colonized"), title = "Modernization theory: Just for the non-colonized world?", axis.title = c("Log of GDP per capita", "VDem scores"))
+your_theory_is_eurocentric
 #    b. Include confidence bands
 
 #    c. Add appropriate labels and title
@@ -338,9 +367,9 @@ summary(interaction_effects)
 
 **Questions:**
 1. How does the relationship between GDP and democracy differ between former colonies and never-colonized countries?
-
+Basically, the effect of GDP per capita on democracy is *only* significant in the non-colonized countries. Outside the colonized world, rich countries are no more democratic than poor countries. 
 
 2. Is the interaction statistically significant? What does this mean substantively?
-
+The interaction is statistically significant, which means that, substantively, having a colonial history may in fact moderate the effects of economic prosperity on democracy. 
 
 
