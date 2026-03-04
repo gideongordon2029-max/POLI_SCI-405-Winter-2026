@@ -1,0 +1,145 @@
+---
+title: "ProbSet 7, February 27"
+author: 
+  - Gideon Gordon
+  - <gideongordon2029@u.northwestern.edu>
+date: February 27, 2026
+date-format: "**[D]ue:** MMMM D, YYYY"
+format: 
+     pdf:
+       documentclass: article
+fontsize: 12pt
+urlcolor: blue
+number-sections: true
+geometry:
+      - left=1in
+      - right=1in
+      - top=1in
+      - bottom=1in
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+    - \usepackage{float}
+    - \floatplacement{figure}{t}
+    - \floatplacement{table}{t}
+    - \usepackage{flafter}
+    - \usepackage[T1]{fontenc}
+    - \usepackage[utf8]{inputenc}
+    - \usepackage{ragged2e}
+    - \usepackage{booktabs}
+    - \usepackage{amsmath}
+    - \usepackage{url}
+---
+
+**Due Date**: March 6, 2026  
+**Submission**: https://canvas.northwestern.edu/courses/245562/assignments/1687753
+
+---
+
+# Problem 1
+
+## 1a.
+
+Compare and contrast the following transformations:
+ - $\log(X)$ vs. $\sqrt{X}$
+ - $\text{asinh}(X)$ vs. $\log(X + 1)$
+
+## 1b.
+
+Using the kidiq dataset from the slides:
+
+```{r problem1b, eval=FALSE}
+library(rosdata)
+data(kidiq)
+
+# Fit three models:
+# 1. Without centering: kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq
+# 2. With centering mom_iq at its mean
+# 3. With standardization (z-scores for mom_iq)
+
+# Your tasks:
+# 1. Fit all three models
+# 2. Create a table comparing coefficients
+# 3. Interpret the interaction term in each model
+# 4. Explain why centering matters for interpretation
+```
+
+
+---
+
+# Problem 2
+
+Using QOG data:
+
+```{r problem2a, eval=FALSE}
+library(rqog)
+library(dplyr)
+library(ggplot2)
+
+# Load and prepare data
+qog_data <- read_qog(which_data = "standard", data_type = "time-series")
+
+democracy_data <- qog_data %>%
+  filter(year == 2020) %>%
+  select(
+    country = cname,
+    democracy = vdem_libdem,
+    gdp_pc = wdi_gdpcappppcon2017,
+    population = wdi_pop,
+    corruption = ti_cpi
+  ) %>%
+  filter(!is.na(democracy), !is.na(gdp_pc), gdp_pc > 0) %>%
+  mutate(
+    log_gdp = log(gdp_pc),
+    log_pop = log(population)
+  )
+
+# Your tasks:
+# 1. Fit four different models of democracy:
+#    a. Linear: democracy ~ gdp_pc
+#    b. Log-X: democracy ~ log_gdp
+#    c. Log-Y: lm(log(democracy) ~ gdp_pc)  # Note: democracy is 0-1
+#    d. Log-log: lm(log(democracy + 0.01) ~ log_gdp)  # Handle zeros
+
+# 2. For each model:
+#    a. Create residual plots
+#    b. Interpret coefficients substantively
+
+# 3. Create a visualization comparing predicted vs. actual values
+#    for all four models on the original scale
+
+# 4. Test polynomial specifications:
+#    democracy ~ poly(log_gdp, 2)
+#    democracy ~ poly(log_gdp, 3)
+```
+
+**Questions:**
+1. Which transformation provides the best fit? Justify using both statistical and substantive criteria.
+
+
+# Problem 3
+
+Using the democracy model from Problem 2:
+
+```{r problem3a, eval=FALSE}
+# Choose the best model from Problem 2
+best_model <- lm(democracy ~ log_gdp, data = democracy_data)
+
+# Create comprehensive diagnostics:
+library(ggplot2)
+library(patchwork)
+
+# 1. Create all four diagnostic plots (residuals vs. fitted values, Q-Q plot of residuals, scale-location plot, and residuals vs. leverage plot) 
+# 2. Calculate and plot relevant influence statistics (Cook's distance and/or DFFITS at your discretion)
+# 3. Identify influential observations
+# 4. Test for heteroskedasticity (Breusch-Pagan test)
+
+
+```
+
+**Questions:**
+1. Which countries are influential observations in your model? Why?
+2. Is there evidence of heteroskedasticity? What are the implications?
+3. Are the residuals normally distributed? Why does this matter?
+
+
