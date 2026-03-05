@@ -48,7 +48,7 @@ Compare and contrast the following transformations:
 
 Using the kidiq dataset from the slides:
 
-```{r problem1b, eval=FALSE}
+```{r problem1b}
 library(rosdata)
 library(modelsummary)
 library(plotrix)
@@ -98,7 +98,7 @@ As far as centering goes, it matters for interpretation because it makes the coe
 
 Using QOG data:
 
-```{r problem2a, eval=FALSE}
+```{r problem2a}
 library(rqog)
 library(dplyr)
 library(ggplot2)
@@ -256,7 +256,7 @@ The line I've plotted on each graph (y = x) is the line of a hypothetical model 
 
 Using the democracy model from Problem 2:
 
-```{r problem3a, eval=FALSE}
+```{r problem3a}
 # Choose the best model from Problem 2
 best_model <- lm(democracy ~ log_gdp, data = democracy_data)
 
@@ -265,46 +265,54 @@ library(ggplot2)
 library(patchwork)
 
 # 1. Create all four diagnostic plots (residuals vs. fitted values, Q-Q plot of residuals, scale-location plot, and residuals vs. leverage plot) 
-diagnostics_data_best <- data.frame(fitted = fitted(best_model), residuals = residuals(best_model), leverages = hatvalues(best_model), cooks = cooks.distance(best_model))
+diagnostics_data_best <- data.frame(fitted = fitted(best_model), residuals = residuals(best_model), leverages = hatvalues(best_model), cooks = cooks.distance(best_model), country = democracy_data$country)
 
-residuals_and_fitted = ggplot(data = diagnostics_data_best, aes(x = residuals, y = fitted)) +
-  geom_point() 
+residuals_and_fitted = ggplot(data = diagnostics_data_best, aes(x = fitted, y = residuals)) +
+  geom_text(aes(label = country), size = 3, check_overlap = TRUE) +
+  labs(title = "Residuals plotted against fitted values", x = "Residuals of observations", y = "Fitted Value")
 
 residuals_and_leverage = ggplot(data = diagnostics_data_best, aes(x = residuals, y = leverages)) +
-  geom_point()
+  geom_text(aes(label = country), size = 3, check_overlap = TRUE)
 
 # 2. Calculate and plot relevant influence statistics (Cook's distance and/or DFFITS at your discretion)
 influence = ggplot(data = diagnostics_data_best, aes(x =  1:nrow(diagnostics_data_best), y = cooks)) +
-  geom_point() +
+  geom_text(aes(label = country), size = 3, check_overlap = TRUE) +
   labs(title = "Cook's Distance of Observations", x = "Observation Index", y = "Cook's")
 
 # 3. Identify influential observations
 # 4. Test for heteroskedasticity (Breusch-Pagan test)
 ```
 
-Here's the residuals/fitted graph.  
+Here's the residuals/fitted graph.
+
 ```{r}
 residuals_and_fitted
 ```
 That sure looks heteroskedastic! It's very funnel-y. 
 
 Here's the residuals/leverage graph. I don't totally know how to interpret that. 
+
 ```{r}
 residuals_and_leverage
 ```
 
-And it looks like there are a few highly influential observations, but it's hard to say what exactly they are or why they're there, because these are individual people. 
+And it looks like there are a few more influential observations. The most influential observations are all wealthy Gulf countries, except for Singapore. 
+
 ```{r}
 influence
 ```
 
+I have no idea what a Q-Q plot of residuals is. Same goes for a scale-location plot. Just... no clue. For figuring out leverage, I'm checking my old work from problem set 5 to get a set of values.
 
-
-I have no idea what a Q-Q plot of residuals is. Same goes for a scale-location plot. Just... no clue. For figuring out leverage, I'm checking my old work from problem set 5 to get a set of values.  
+I'm also not sure what a Breusch-Pagan test is, I think maybe we went over it VERY quickly. 
 
 **Questions:**
 1. Which countries are influential observations in your model? Why?
-2. Is there evidence of heteroskedasticity? What are the implications?
-3. Are the residuals normally distributed? Why does this matter?
+The Gulf. Gulf countries are fairly influential relative to others, since they're high-income countries with almost no democracy (as a result of oil rents). So they're immense outliers, and they're also far from the mean x-value because most countries are not wealthy. 
 
+2. Is there evidence of heteroskedasticity? What are the implications?
+There is evidence of heteroskedasticity. I don't know how to do a Breusch-Pagan test, but I can say that just looking at the graph, it's all funnel-y. This means that, as we get to higher fitted values, a country's democracy score gets less and less predictable. In practice this is probably because of a couple of oil-rich states messing with our findings. We ought to use HC3 robust standard errors to address this problem. 
+
+3. Are the residuals normally distributed? Why does this matter?
+Honestly, hard to say; not sure how to tell (maybe that's what a Q-Q plot is for??). If residuals are not normally distributed, this might mean errors aren't normally distributed, but we sort of breezed past non-normality of errors because it's not usually very important. It may lead to some sketchy p-values and unreliable confidence intervals. 
 
