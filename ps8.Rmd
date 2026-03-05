@@ -50,20 +50,97 @@ Using the kidiq dataset from the slides:
 
 ```{r problem1b, eval=FALSE}
 library(rosdata)
+library(modelsummary)
+library(plotrix)
+library(kableExtra)
 data(kidiq)
 
 # Fit three models:
 # 1. Without centering: kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq
+
+non_centered_model = lm(formula = (kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq),
+  data = kidiq)
+
 # 2. With centering mom_iq at its mean
+kidiq$c_mom_iq <- kidiq$mom_iq - mean(kidiq$mom_iq)
+centered_model = lm(formula = (kid_score ~ mom_hs + c_mom_iq + mom_hs:c_mom_iq),
+                    data = kidiq)
+
 # 3. With standardization (z-scores for mom_iq)
+
 
 # Your tasks:
 # 1. Fit all three models
+
 # 2. Create a table comparing coefficients
-# 3. Interpret the interaction term in each model
-# 4. Explain why centering matters for interpretation
+ms.display <- modelsummary(
+  list("Non-Centered" = non_centered_model, 
+       "Centered" = centered_model),
+  stars = TRUE, output = "kableExtra"
+)
+ms.display
 ```
 
+```{r, echo=TRUE}
+library(sjPlot)
+library(sjmisc)
+library(ggplot2)
+
+meplot <- function(model,var1,var2,int,vcov,ci=.95,
+                   xlab=var2,ylab=paste("Marginal Effect of",var1),
+                   main="Marginal Effect Plot",
+                   me_lty=1,me_lwd=1,me_col="black",
+                   ci_lty=1,ci_lwd=.5,ci_col="black",
+                   yint_lty=2,yint_lwd=1,yint_col="black"){
+  require(ggplot2)
+  alpha <- 1-ci
+  z <- qnorm(1-alpha/2)
+  beta.hat <- coef(model)
+  cov <- vcov
+  z0 <- seq(min(model.frame(model)[,var2],na.rm=T),max(model.frame(model)[,var2],na.rm=T),length.out=1000)
+  dy.dx <- beta.hat[var1] + beta.hat[int]*z0
+  se.dy.dx <- sqrt(cov[var1,var1] + z0^2*cov[nrow(cov),ncol(cov)] + 2*z0*cov[var1,ncol(cov)])
+  upr <- dy.dx + z*se.dy.dx
+  lwr <- dy.dx - z*se.dy.dx
+  ggplot(data=NULL,aes(x=z0, y=dy.dx)) +
+    labs(x=xlab,y=ylab,title=main) +
+    geom_line(aes(z0, dy.dx),size = me_lwd, 
+              linetype = me_lty, 
+              color = me_col) +
+    geom_line(aes(z0, lwr), size = ci_lwd, 
+              linetype = ci_lty, 
+              color = ci_col) +
+    geom_line(aes(z0, upr), size = ci_lwd, 
+              linetype = ci_lty, 
+              color = ci_col) +
+    geom_hline(yintercept=0,linetype=yint_lty,
+               size=yint_lwd,
+               color=yint_col)}
+```
+
+```{r, echo=TRUE}
+# 3. Interpret the interaction term in each model
+mom_iq_hs_interactions = meplot(non_centered_model, var1 = "mom_iq", var2 = "mom_hs", int = "mom_hs:mom_iq", vcov = vcov(non_centered_model))
+mom_cent_iq_hs_interactions = meplot(centered_model, var1 = "c_mom_iq", var2 = "mom_hs", int = "mom_hs:c_mom_iq", vcov = vcov(centered_model))
+
+# 4. Explain why centering matters for interpretation
+
+```
+
+I understand in theory what standardization is for. It's useful for showing us how substantive a change is based on how many standard deviations from the norm it is. But also, in practice, I don't know how to do it. So, leaving that aside... 
+
+The interaction term in each model is the degree to which having gone to high school (HS = 1) changes the effect of mom IQ on kid IQ. The effects are easier to see when I graph them, because interaction terms are weird. 
+
+```{r}
+mom_iq_hs_interactions
+```
+
+```{r}
+mom_cent_iq_hs_interactions
+```
+The effect of parental IQ, on the non-centered and centered graphs alike, go down with parental schooling, and the confidence intervals at HS = 0 and HS = 1 do not overlap in either case. 
+
+As far as centering goes, it matters for interpretation because it makes the coefficient for `mom_hs` meaningful. Otherwise, the coefficient for `mom_hs` is the effect of going to high school when `mom_iq` is 0, which is completely nonsensical. 
 
 ---
 
@@ -97,25 +174,133 @@ democracy_data <- qog_data %>%
 # Your tasks:
 # 1. Fit four different models of democracy:
 #    a. Linear: democracy ~ gdp_pc
+linear_dem = lm(formula = (democracy ~ gdp_pc),
+                data = democracy_data)
+
 #    b. Log-X: democracy ~ log_gdp
+logX_dem = lm(formula = (democracy ~ log_gdp),
+                data = democracy_data)
+
 #    c. Log-Y: lm(log(democracy) ~ gdp_pc)  # Note: democracy is 0-1
-#    d. Log-log: lm(log(democracy + 0.01) ~ log_gdp)  # Handle zeros
+logY_dem = lm(formula = (log(democracy) ~ gdp_pc),
+                data = democracy_data)
+
+#    d. Log-log: lm(log(democracy + 0.01) ~ log_gdp)  
+# We add 0.01 because taking the log of 0 is impossible 
+log_log_dem = lm(formula = (log(democracy + 0.01) ~ log_gdp),
+                 data = democracy_data)
+
+
 
 # 2. For each model:
 #    a. Create residual plots
 #    b. Interpret coefficients substantively
+```
 
+```{r}
+res_data_linear_dem <- data.frame(fitted = fitted(linear_dem), residuals = residuals(linear_dem))
+res_data_logX_dem <- data.frame(fitted = fitted(logX_dem), residuals = residuals(logX_dem))
+res_data_logY_dem <- data.frame(fitted = fitted(logY_dem), residuals = residuals(logY_dem))
+res_data_log_log_dem <- data.frame(fitted = fitted(log_log_dem), residuals = residuals(log_log_dem))
+
+res_plot_linear_dem = ggplot(data = res_data_linear_dem, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for Linear Model") +
+  theme_minimal()
+
+res_plot_logX_dem = ggplot(data = res_data_logX_dem, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for LogX Model") +
+  theme_minimal()
+
+res_plot_logY_dem = ggplot(data = res_data_logY_dem, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for LogY Model") +
+  theme_minimal()
+
+res_plot_log_log_dem = ggplot(data = res_data_log_log_dem, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for Log-Log Model") +
+  theme_minimal()
+```
+
+(Relied on some code from Google's AI here to get through how to set up the plots). 
+
+For the **linear model**:
+```{r}
+summary(linear_dem)
+res_plot_linear_dem
+```
+The coefficient can be interpreted as being the average difference in democracy scores between countries separated by $1 in GDP per capita. However, the values get farther from true (the fitted values are an *over*estimate) to a greater degree as the data would predict democracy scores closer to 1. 
+
+For the *logX* model:
+```{r}
+summary(logX_dem)
+res_plot_logX_dem
+```
+Here, the coefficient of GDP represents the average difference between countries that differ in GDP per capita by a factor of $e$. The residual plot shows more unpredictability as the fitted democracy scores increase (it appears there is some heteroskedasticity, based on the funnel pattern of the data), but the residuals do appear a bit smaller overall. 
+
+For the *logY* model: 
+```{r}
+summary(logY_dem)
+res_plot_logY_dem
+```
+This is tricky because taking the log of something less than 1 gets you a negative number. So all the `log(democracy)` scores will be negative, because all of the democracy scores are less than 1. The coefficient, I guess, is the factors of $e$ in democracy scores between one group of countries and another with one dollar more in GDP per capita. So a difference of one dollar in GDP per capita amounts to, on average, a difference in the log of democracy of 1.320e-05, which means I *think* multiplying the raw democracy score by $e^{1.32e-05}$. 
+
+The residuals here are sizable, but in units of log(democracy), so that's, I *think*, an underestimate by a factor of $e$ or an overestimate by a factor of $e$.  
+
+For the *log-log model*:
+```{r}
+summary(log_log_dem)
+res_plot_log_log_dem
+
+```
+Okay so, the coefficient seems to mean, multiplying the `log_gdp` by $e$ corresponds to multiplying the democracy score by $e^\beta$. I THINK. I am getting confused at this point and not quite sure how to interpret a log-log plot. As far as the residuals go, we again read residuals as differences by a factor of $e$. I think. 
+
+```{r}
 # 3. Create a visualization comparing predicted vs. actual values
 #    for all four models on the original scale
-
-# 4. Test polynomial specifications:
-#    democracy ~ poly(log_gdp, 2)
-#    democracy ~ poly(log_gdp, 3)
+res_data_linear_dem = mutate(res_data_linear_dem, actual = democracy_data$democracy, type = "Linear")
+res_data_logX_dem = mutate(res_data_logX_dem, actual = democracy_data$democracy, type = "LogX")
+res_data_logY_dem = mutate(res_data_logY_dem, actual = democracy_data$democracy, type = "LogY", fitted = exp(fitted))
+res_data_log_log_dem = mutate(res_data_log_log_dem, actual = democracy_data$democracy, type = "Log_Log", fitted = exp(fitted))
+full_fitting_data_dem = rbind(res_data_linear_dem, res_data_logX_dem, res_data_logY_dem, res_data_log_log_dem)
 ```
+
+```{r}
+ggplot(data = full_fitting_data_dem, aes(x = fitted, y = actual, color = type)) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "Linear")) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "LogX")) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "LogY")) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "Log_Log")) +
+  geom_abline(intercept=0, slope=1)
+```
+
+```{r}
+# 4. Test polynomial specifications:
+quadratic_model = lm(formula = (democracy ~ poly(log_gdp, 2)), data = democracy_data)
+cubic_model = lm(formula = (democracy ~ poly(log_gdp, 3)), data = democracy_data)
+res_data_quadratic_dem <- data.frame(fitted = fitted(quadratic_model), residuals = residuals(quadratic_model), actual = democracy_data$democracy, type = "Quadratic")
+res_data_cubic_dem <- data.frame(fitted = fitted(cubic_model), residuals = residuals(cubic_model), actual = democracy_data$democracy, type = "Cubic")
+full_fitting_data_dem = rbind(full_fitting_data_dem, res_data_quadratic_dem, res_data_cubic_dem)
+```
+
+```{r}
+ggplot(data = full_fitting_data_dem, aes(x = fitted, y = actual, color = type)) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "Linear")) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "Quadratic")) +
+  geom_smooth(data = filter(full_fitting_data_dem, type == "Cubic")) +
+  geom_abline(intercept=0, slope=1)
+```
+
 
 **Questions:**
 1. Which transformation provides the best fit? Justify using both statistical and substantive criteria.
-
+The line I've plotted on each graph (y = x) is the line of a hypothetical model that perfectly fits the data. What we see is that of the graphs using logarithms, the `LogX` model is closest to that line. The polynomials get closer the more terms I include, but that leaves weird questions about how to interpret, for example, the cubed term. I think that the `logX` transformation offers the best fit, and also substantively allows for a straightforward interpretation, in that increasing GDP per capita by a certain amount does not directly correlate to increasing democracy by a certain amount forever. There are diminishing returns.  
 
 # Problem 3
 
@@ -136,6 +321,8 @@ library(patchwork)
 
 
 ```
+
+I have no idea what a Q-Q plot of residuals is. Just... no clue. 
 
 **Questions:**
 1. Which countries are influential observations in your model? Why?
