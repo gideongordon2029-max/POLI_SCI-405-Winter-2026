@@ -315,14 +315,31 @@ library(ggplot2)
 library(patchwork)
 
 # 1. Create all four diagnostic plots (residuals vs. fitted values, Q-Q plot of residuals, scale-location plot, and residuals vs. leverage plot) 
+diagnostics_data_best <- data.frame(fitted = fitted(best_model), residuals = residuals(best_model), leverages = hatvalues(best_model), cooks = cooks.distance(best_model))
+
+residuals_and_fitted = ggplot(data = diagnostics_data_best, aes(x = residuals, y = fitted)) +
+  geom_point()
+
+residuals_and_leverage = ggplot(data = diagnostics_data_best, aes(x = residuals, y = leverages)) +
+  geom_point()
+
 # 2. Calculate and plot relevant influence statistics (Cook's distance and/or DFFITS at your discretion)
+influence = ggplot(data = diagnostics_data_best, aes(x =  1:nrow(diagnostics_data_best), y = cooks)) +
+  geom_point()
+
 # 3. Identify influential observations
 # 4. Test for heteroskedasticity (Breusch-Pagan test)
-
-
 ```
 
-I have no idea what a Q-Q plot of residuals is. Just... no clue. 
+
+
+Let's look for influence statistics using Cook's distance. 
+```{r}
+influence
+```
+
+
+I have no idea what a Q-Q plot of residuals is. Same goes for a scale-location plot. Just... no clue. For figuring out leverage, I'm checking my old work from problem set 5 to get a set of values.  
 
 **Questions:**
 1. Which countries are influential observations in your model? Why?
