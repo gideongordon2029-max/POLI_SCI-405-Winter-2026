@@ -36,9 +36,9 @@ header-includes:
 
 # Problem 1
 
-1. Define heteroskedasticity in your own words. Why is it common in political science data? Provide three specific examples from at least two different subfields (e.g., comparative politics, international relations, American politics).
+*1. Define heteroskedasticity in your own words. Why is it common in political science data? Provide three specific examples from at least two different subfields (e.g., comparative politics, international relations, American politics).*
 
-2. Explain why OLS coefficient estimates remain unbiased under heteroskedasticity, but inference becomes invalid.
+*2. Explain why OLS coefficient estimates remain unbiased under heteroskedasticity, but inference becomes invalid.*
 
 # Problem 2
 
