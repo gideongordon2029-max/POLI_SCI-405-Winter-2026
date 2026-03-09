@@ -1,9 +1,9 @@
 ---
-title: "ProbSet 8, March 6"
+title: "ProbSet 9, March 13"
 author: 
   - Gideon Gordon
   - <gideongordon2029@u.northwestern.edu>
-date: March 6, 2026
+date: March 13, 2026
 date-format: "**[D]ue:** MMMM D, YYYY"
 format: 
      pdf:
