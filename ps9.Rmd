@@ -1,0 +1,118 @@
+---
+title: "ProbSet 8, March 6"
+author: 
+  - Gideon Gordon
+  - <gideongordon2029@u.northwestern.edu>
+date: March 6, 2026
+date-format: "**[D]ue:** MMMM D, YYYY"
+format: 
+     pdf:
+       documentclass: article
+fontsize: 12pt
+urlcolor: blue
+number-sections: true
+geometry:
+      - left=1in
+      - right=1in
+      - top=1in
+      - bottom=1in
+header-includes:
+    - \usepackage{setspace}
+    - \doublespacing
+    - \usepackage{float}
+    - \floatplacement{figure}{t}
+    - \floatplacement{table}{t}
+    - \usepackage{flafter}
+    - \usepackage[T1]{fontenc}
+    - \usepackage[utf8]{inputenc}
+    - \usepackage{ragged2e}
+    - \usepackage{booktabs}
+    - \usepackage{amsmath}
+    - \usepackage{url}
+---
+
+**Due Date**: March 13, 2026  
+**Submission**: [https://canvas.northwestern.edu/courses/245562/assignments/1687754](https://canvas.northwestern.edu/courses/245562/assignments/1687754)
+
+# Problem 1
+
+1. Define heteroskedasticity in your own words. Why is it common in political science data? Provide three specific examples from at least two different subfields (e.g., comparative politics, international relations, American politics).
+
+2. Explain why OLS coefficient estimates remain unbiased under heteroskedasticity, but inference becomes invalid.
+
+# Problem 2
+
+Using the QOG data on democracy and development:
+
+```{r problem2a, eval=FALSE}
+library(rqog)
+library(dplyr)
+library(sandwich)
+library(lmtest)
+library(modelsummary)
+
+# Load and prepare data
+qog_data <- read_qog(which_data = "standard", data_type = "time-series")
+
+analysis_data <- qog_data %>%
+  filter(year == 2020) %>%
+  select(
+    country = cname,
+    democracy = vdem_libdem,
+    gdp_pc = gle_cgdpc,
+    population = wdi_pop,
+    corruption = ti_cpi,
+    region = ht_region
+  ) %>%
+  filter(!is.na(democracy), !is.na(gdp_pc), gdp_pc > 0) %>%
+  mutate(
+    log_gdp = log(gdp_pc),
+    log_pop = log(population)
+  )
+
+# Fit model
+model <- lm(democracy ~ log_gdp + corruption + log_pop, 
+            data = analysis_data)
+
+# Your tasks:
+# 1. Extract and compare standard errors using:
+#    - Homoskedastic (default) SEs
+#    - HC0, HC1, HC2, HC3, HC4
+# 2. Create a table showing coefficients with each type of SE
+# 3. Calculate t-statistics and p-values for each
+# 4. Identify which coefficients remain significant at p < 0.05 under each SE type
+# 5. Create a visualization showing how SEs change across estimators
+```
+
+**Questions:**
+1. Which HC estimator gives the largest standard errors? Which gives the smallest?
+2. How do conclusions about statistical significance change across estimators?
+3. Based on residual analysis, which estimator seems most appropriate for this data?
+
+# Problem 3
+
+```{r problem3a, eval=FALSE}
+# Use the results from problem 2 to create professional tables
+
+# Your tasks:
+# 1. Create a table displaying the best results from problem 2 with:
+#    a. Proper variable labels (not R variable names)
+#    b. Appropriate standard errors
+#    c. Standard goodness-of-fit statistics
+#    d. Clear model labels
+
+# 2. Add appropriate table notes:
+#    a. Explanation of standard errors
+#    b. Data sources
+#    c. Sample description
+
+# 3. Create a "presentation" version with:
+#    a. Some kind of representation of significance levels
+#    b. Rounded coefficients
+#    c. Clean formatting for slides
+
+
+# Create the table with proper formatting
+```
+
+
