@@ -38,60 +38,171 @@ header-includes:
 
 *1. Define heteroskedasticity in your own words. Why is it common in political science data? Provide three specific examples from at least two different subfields (e.g., comparative politics, international relations, American politics).*
 
+Heteroskedasticity is when the *size of residuals* of a function are correlated with one of the terms. This means essentially that an outcome Y is correlated with X on average, but Y gets less predictable as X increases. One example is that rich people's voting behavior is less predictable than poor people's voting behavior (the residuals on voting preferences increase as income increases). Another may be that democracy scores are less predictable with GDP per capita at the lower ends of the GDP per capita scale (if we exclude the Gulf States as outliers): there are a wide range of democracy scores among poorer countries, but rich countries, mostly in Europe, are almost all democracies. And while almost no countries with a high GDP per capita suffer civil wars, other factors make the outbreak of civil war in countries with low GDP per capita harder to predict, so variance in civil war outbreak decreases as the GDP per capita increases.  
+
 *2. Explain why OLS coefficient estimates remain unbiased under heteroskedasticity, but inference becomes invalid.*
+
+Heteroskedasticity means that essentially the residuals around the line are bigger, but the line itself is still mathematically guaranteed to be always right down the middle of the residuals so they average out to 0. However, with big residuals in some places, the regular confidence intervals we use, which assume homoskedasticity, are often not conservative enough. As a result, we can't rely on our confidence intervals to correctly reject or fail to reject the null hypothesis. 
 
 # Problem 2
 
 Using the QOG data on democracy and development:
 
-```{r problem2a, eval=FALSE}
+```{r problem2a}
 library(rqog)
 library(dplyr)
 library(sandwich)
 library(lmtest)
 library(modelsummary)
+library(ggplot2)
 
 # Load and prepare data
-qog_data <- read_qog(which_data = "standard", data_type = "time-series")
+# qog_data <- read_qog(which_data = "standard", data_type = "time-series")
+
+data_2010 <- qog_data %>%
+  filter(year == c(2010))
+data_2020 <- qog_data %>%
+  filter(year == c(2020))
 
 analysis_data <- qog_data %>%
-  filter(year == 2020) %>%
+  filter(year == c(2010)) %>%
   select(
     country = cname,
     democracy = vdem_libdem,
-    gdp_pc = gle_cgdpc,
     population = wdi_pop,
-    corruption = ti_cpi,
-    region = ht_region
+    gdp_pc = mad_gdppc,
+    region = ht_region,
+    corruption = bci_bci
   ) %>%
   filter(!is.na(democracy), !is.na(gdp_pc), gdp_pc > 0) %>%
   mutate(
     log_gdp = log(gdp_pc),
-    log_pop = log(population)
+    log_pop = log(population),
+    log_dem = log(democracy)
   )
 
 # Fit model
 model <- lm(democracy ~ log_gdp + corruption + log_pop, 
             data = analysis_data)
+model_gdpdefault <- lm(democracy ~ gdp_pc + corruption + log_pop, data = analysis_data)
+model_log_log <- lm(log_dem ~ log_gdp + corruption + log_pop, data = analysis_data)
+```
 
+```{r problem2a1}
 # Your tasks:
 # 1. Extract and compare standard errors using:
 #    - Homoskedastic (default) SEs
+
 #    - HC0, HC1, HC2, HC3, HC4
-# 2. Create a table showing coefficients with each type of SE
-# 3. Calculate t-statistics and p-values for each
-# 4. Identify which coefficients remain significant at p < 0.05 under each SE type
-# 5. Create a visualization showing how SEs change across estimators
+HC0_model = coeftest(model, vcov = vcovHC(model, type = "HC0"))
+HC1_model = coeftest(model, vcov = vcovHC(model, type = "HC1"))
+HC2_model = coeftest(model, vcov = vcovHC(model, type = "HC2"))
+HC3_model = coeftest(model, vcov = vcovHC(model, type = "HC3"))
+HC4_model = coeftest(model, vcov = vcovHC(model, type = "HC4"))
+
+Default_SE = c(summary(model)$coefficients[, "Std. Error"], type = "Default")
+HC0_SE = c(HC0_model[, "Std. Error"], type = "HC0")
+HC1_SE = c(HC1_model[, "Std. Error"], type = "HC1")
+HC2_SE = c(HC2_model[, "Std. Error"], type = "HC2")
+HC3_SE = c(HC3_model[, "Std. Error"], type = "HC3")
+HC4_SE = c(HC4_model[, "Std. Error"], type = "HC4")
+
+Standard_errors = data.frame(Default_SE, HC0_SE, HC1_SE, HC2_SE, HC3_SE, HC4_SE)
+
+SEs <- data.frame(t(Standard_errors))
+
+print(Standard_errors)
+print(SEs)
+HC0_model
 ```
+
+```{r problem2a2-4}
+# 2. Create a table showing coefficients with each type of SE
+hetsked_coefs_summary = msummary(
+      list("OLS" = model, 
+      "HC0" = model,
+      "HC1" = model,
+      "HC2" = model,
+      "HC3" = model,
+      "HC4" = model),
+  vcov = list("iid", "HC0", "HC1", "HC2", "HC3", "HC4"),
+  gof_omit = 'AIC|BIC|Log|RMSE|F|R2 Adj.',
+  stars = TRUE, output = "kableExtra"
+)
+hetsked_coefs_summary
+
+# 3. Calculate t-statistics and p-values for each.
+Default_p = c(summary(model)$coefficients[, "Pr(>|t|)"])
+HC0_p = c(HC0_model[, "Pr(>|t|)"])
+HC1_p = c(HC1_model[, "Pr(>|t|)"])
+HC2_p = c(HC2_model[, "Pr(>|t|)"])
+HC3_p = c(HC3_model[, "Pr(>|t|)"])
+HC4_p = c(HC4_model[, "Pr(>|t|)"])
+
+P_values = data.frame(Default_p, HC0_p, HC1_p, HC2_p, HC3_p, HC4_p)
+print(P_values)
+
+# 4. Identify which coefficients remain significant at p < 0.05 under each SE type
+```
+Basically they all remain consistent at a p-value of 0.05 across all models. I am wondering if the original corruption numbers would give a different result. 
+
+
+```{r problem2a5}
+# 5. Create a visualization showing how SEs change across estimators
+
+Log_GDP_SEs = ggplot(data = SEs, aes(x = type, y = log_gdp)) + 
+  geom_point(color = "red") +
+  labs(y = "SE of Log GDP", x = "Type of Correction", title = "Change in SE of Log GDP by Correction Type")
+Log_GDP_SEs
+
+Corruption_SEs = ggplot(data = SEs, aes(x = type, y = corruption)) + 
+  geom_point(color = "red") +
+  labs(y = "SE of Corruption", x = "Type of Correction", title = "Change in SE of Corruption by Correction Type")
+Corruption_SEs
+
+Log_Pop_SEs = ggplot(data = SEs, aes(x = type, y = log_pop)) + 
+  geom_point(color = "red") +
+  labs(y = "SE of Log Pop", x = "Type of Correction", title = "Change in SE of Log Pop by Correction Type")
+Log_Pop_SEs
+
+
+```
+
+For some reason it seems that in 2020, there was no data for `gle_cgdpc` so I went to 2010 where data existed. However, in a similarly baffling turn of events, corruption data was completely missing for 2010. I therefore replaced the corruption metric from Transparency International with the BCI (Bayesian Corruption Index) which has data for more years. But I have no idea how I'm getting the results I'm getting; things got very weird once I switched indices... 
 
 **Questions:**
 1. Which HC estimator gives the largest standard errors? Which gives the smallest?
+The largest standard errors come from HC3, and the smallest come from HC0. 
+
 2. How do conclusions about statistical significance change across estimators?
+In this case, because of the data available, there's no difference, but we know that HC3 would 
+
 3. Based on residual analysis, which estimator seems most appropriate for this data?
+
+```{r}
+
+res_data_log_gdp_dem = data.frame(fitted = fitted(model), residuals = residuals(model))
+res_plot_log_gdp_dem = ggplot(data = res_data_log_gdp_dem, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for Log GDP per capita Model") +
+  theme_minimal()
+res_plot_log_gdp_dem
+
+res_data_gdp_dem = data.frame(fitted = fitted(model_gdpdefault), residuals = residuals(model_gdpdefault))
+res_plot_gdp_dem = ggplot(data = res_data_gdp_dem, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for GDP per capita Model") +
+  theme_minimal()
+res_plot_gdp_dem
+
+```
+The logged model seems preferable. 
 
 # Problem 3
 
-```{r problem3a, eval=FALSE}
+```{r problem3a}
 # Use the results from problem 2 to create professional tables
 
 # Your tasks:
