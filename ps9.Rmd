@@ -55,9 +55,11 @@ library(sandwich)
 library(lmtest)
 library(modelsummary)
 library(ggplot2)
+library(knitr)
+library(kableExtra)
 
 # Load and prepare data
-# qog_data <- read_qog(which_data = "standard", data_type = "time-series")
+qog_data <- read_qog(which_data = "standard", data_type = "time-series")
 
 data_2010 <- qog_data %>%
   filter(year == c(2010))
@@ -82,10 +84,12 @@ analysis_data <- qog_data %>%
   )
 
 # Fit model
-model <- lm(democracy ~ log_gdp + corruption + log_pop, 
+model_log_gdp <- lm(democracy ~ log_gdp + corruption + log_pop, 
             data = analysis_data)
-model_gdpdefault <- lm(democracy ~ gdp_pc + corruption + log_pop, data = analysis_data)
-model_log_log <- lm(log_dem ~ log_gdp + corruption + log_pop, data = analysis_data)
+model_gdpdefault <- lm(democracy ~ gdp_pc + corruption + log_pop, 
+                       data = analysis_data)
+model_log_log <- lm(log_dem ~ log_gdp + corruption + log_pop, 
+                    data = analysis_data)
 ```
 
 ```{r problem2a1}
@@ -94,13 +98,13 @@ model_log_log <- lm(log_dem ~ log_gdp + corruption + log_pop, data = analysis_da
 #    - Homoskedastic (default) SEs
 
 #    - HC0, HC1, HC2, HC3, HC4
-HC0_model = coeftest(model, vcov = vcovHC(model, type = "HC0"))
-HC1_model = coeftest(model, vcov = vcovHC(model, type = "HC1"))
-HC2_model = coeftest(model, vcov = vcovHC(model, type = "HC2"))
-HC3_model = coeftest(model, vcov = vcovHC(model, type = "HC3"))
-HC4_model = coeftest(model, vcov = vcovHC(model, type = "HC4"))
+HC0_model = coeftest(model_log_gdp, vcov = vcovHC(model_log_gdp, type = "HC0"))
+HC1_model = coeftest(model_log_gdp, vcov = vcovHC(model_log_gdp, type = "HC1"))
+HC2_model = coeftest(model_log_gdp, vcov = vcovHC(model_log_gdp, type = "HC2"))
+HC3_model = coeftest(model_log_gdp, vcov = vcovHC(model_log_gdp, type = "HC3"))
+HC4_model = coeftest(model_log_gdp, vcov = vcovHC(model_log_gdp, type = "HC4"))
 
-Default_SE = c(summary(model)$coefficients[, "Std. Error"], type = "Default")
+Default_SE = c(summary(model_log_gdp)$coefficients[, "Std. Error"], type = "Default")
 HC0_SE = c(HC0_model[, "Std. Error"], type = "HC0")
 HC1_SE = c(HC1_model[, "Std. Error"], type = "HC1")
 HC2_SE = c(HC2_model[, "Std. Error"], type = "HC2")
@@ -119,12 +123,12 @@ HC0_model
 ```{r problem2a2-4}
 # 2. Create a table showing coefficients with each type of SE
 hetsked_coefs_summary = msummary(
-      list("OLS" = model, 
-      "HC0" = model,
-      "HC1" = model,
-      "HC2" = model,
-      "HC3" = model,
-      "HC4" = model),
+      list("OLS" = model_log_gdp, 
+      "HC0" = model_log_gdp,
+      "HC1" = model_log_gdp,
+      "HC2" = model_log_gdp,
+      "HC3" = model_log_gdp,
+      "HC4" = model_log_gdp),
   vcov = list("iid", "HC0", "HC1", "HC2", "HC3", "HC4"),
   gof_omit = 'AIC|BIC|Log|RMSE|F|R2 Adj.',
   stars = TRUE, output = "kableExtra"
@@ -132,7 +136,7 @@ hetsked_coefs_summary = msummary(
 hetsked_coefs_summary
 
 # 3. Calculate t-statistics and p-values for each.
-Default_p = c(summary(model)$coefficients[, "Pr(>|t|)"])
+Default_p = c(summary(model_log_gdp)$coefficients[, "Pr(>|t|)"])
 HC0_p = c(HC0_model[, "Pr(>|t|)"])
 HC1_p = c(HC1_model[, "Pr(>|t|)"])
 HC2_p = c(HC2_model[, "Pr(>|t|)"])
@@ -181,7 +185,7 @@ In this case, because of the data available, there's no difference, but we know 
 
 ```{r}
 
-res_data_log_gdp_dem = data.frame(fitted = fitted(model), residuals = residuals(model))
+res_data_log_gdp_dem = data.frame(fitted = fitted(model_log_gdp), residuals = residuals(model_log_gdp))
 res_plot_log_gdp_dem = ggplot(data = res_data_log_gdp_dem, aes(x = fitted, y = residuals)) +
   geom_point() +
   geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
@@ -211,6 +215,29 @@ The logged model seems preferable.
 #    b. Appropriate standard errors
 #    c. Standard goodness-of-fit statistics
 #    d. Clear model labels
+log_gdp_alone = model_log_gdp_alone <- lm(democracy ~ log_gdp + log_pop, 
+            data = analysis_data)
+
+
+
+cm = c('gdp_pc' = 'GDP per capita', 
+       'log_gdp' = 'Log of GDP per capita',
+       'corruption' = 'Bayesian Corruption Index',
+       'log_pop' = 'Log of population')
+ 
+fancy_model_summary = msummary(model = list("VDem Relationship with Log GDP" = log_gdp_alone, "VDem Relationship with Log GDP and Corruption" = model_log_gdp), 
+         vcov = "HC3",
+         coef_map = cm,
+         stars = TRUE,
+         notes = c("Note: Robust standard errors (HC3) in parentheses.", "Data available upon request.", "Data from Quality of Governance Datasets, 2010."), 
+         title = "Relationship of Democracy to GDP and Corruption: Corruption Explains a Lot!",
+        gof_omit = 'AIC|BIC|Log|RMSE|R2 Adj.',
+        fmt = 2,
+        output = "kableExtra",
+        escape = TRUE) %>%
+  kable_styling(font_size = 12)
+
+fancy_model_summary
 
 # 2. Add appropriate table notes:
 #    a. Explanation of standard errors
@@ -221,7 +248,6 @@ The logged model seems preferable.
 #    a. Some kind of representation of significance levels
 #    b. Rounded coefficients
 #    c. Clean formatting for slides
-
 
 # Create the table with proper formatting
 ```

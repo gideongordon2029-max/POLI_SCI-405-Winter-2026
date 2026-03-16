@@ -36,8 +36,36 @@ header-includes:
 In your own words, answer the following:
 
 1. Explain the difference between using regression for *description*, *prediction*, and *causal inference*. Provide a political science example for each.
+
+Regression used for *description* allows us to identify and describe statistical regularities, even if it does not allow us to say that one thing causes another. It has very loose statistical requirements and can be done under fairly weak assumptions. This is the most basic use of regression: We work to summarize how outcomes on an *indicator* vary across cases defined by values on various *predictors*. 
+
+An example is the strong and consistently found positive correlation between democracy scores on VDem and GDP per capita. We can say, descriptively, that richer countries tend to be more democratic. But this does not let us predict that a country will become more democratic if it becomes richer, or for that matter that a country will become richer once it has free and fair elections. Nor can we be sure that some unobserved confounding variable isn't causing both wealth and democracy, so our space for causal inference is limited. 
+
+Regression used for *prediction* is the sort of thing statisticians do in election coverage: We can use information from observed cases (GDP growth, weather on election day, incumbency) to predict voting patterns in a coming election. This is a somewhat more demanding process than regression as description because it requires us to assume, for example, that the same factors applicable to election outcomes in 1952 are also applicable in 2028. However regression as prediction does *not* require us to have a clear causal story necessarily or to do all the work to identify one.
+
+Regression used for *causal inference* is the hardest. Here the assumptions are most demanding, and the chances of misusing regression for something it can't actually do are fairly high. Regression can summarize how outcomes vary under certain conditions but cannot tell us the direction of causation, and there are also several other ways $X$ may be correlated with $Y$ spuriously (i.e. both are also correlated with some confounder). 
+
+An example of an (attempt at) causal inference in practice comes from Acemoğlu and Robinson's work using a proxy variable for institutional development (settler death rate) to try and avoid reverse causation problems in the relationship between inclusive institutional development and economic growth. This does not entirely work.  
+
 2. What does it mean for OLS to be the "Best Linear Unbiased Estimator" (BLUE)? Under what assumptions does this hold?
+
+This means that there is no better linear estimate of the CEF of $Y$ conditional on $X$ than the OLS. The OLS uses all the available data to produce an unbiased estimate as efficiently as possible. This holds under the Gauss-Markov conditions: 
+
+a. The errors in the model must be uncorrelated with one another.
+
+b. The errors in the model must have a mean value of zero (because if the errors had a mean value more than zero we could capture that effect in the model). 
+
+c. The errors have equal variances across values of $X$ (that is, the errors are homoskedastic). 
+
 3. How can omitted variable bias threaten regressions? Give an example from a real or hypothetical study.
+
+Every independent variable in a regression influences the estimated effects of every other independent variable, and when an important variable is left out, a bias may emerge in the values of other variables.  $\beta_1 - \beta_1^*$ is the bias in the estimate of the effect of $X_1$, where $\beta_1^*$ is the value of $\beta_1$ when some other important variable (let's call it $X_2$) is left out of the equation. This bias will only be zero if the covariance of $X_1$ and $X_2$ is zero or if the correlation between $X_2$ and $Y$ is zero.
+
+Let's say I study the likelihood of civil war outbreak and find that poorer countries, ceteris paribus, are more likely to suffer a civil war. I suggest that this is because lower GDP per capita reduces the opportunity costs of participation in insurgency. However, I separately find that mountainous terrain reduces GDP per capita by increasing the costs of transportation within the country and making infrastructure investment hard. And I find that mountainous terrain reduces state penetration in the periphery as well. 
+
+Simply showing the effect of GDP per capita I may overstate the causal story I imply. Because GDP per capita is connected to other factors that make insurgency easier (weak state presence), some part of the effects that rightly belong to state weakness will instead be captured by GDP per capita. This bias is reduced or removed by including measurements of state capacity in my model. 
+
+On the other hand, I should be careful not to control for a mediating or intervening variable. This will look identical to removing a bias but will in fact obscure the underlying causes. 
 
 ---
 
@@ -53,6 +81,12 @@ where \(\varepsilon_i \sim N(0, \sigma^2)\).
 
 Explain in words what the Gauss-Markov theorem guarantees about the OLS estimator in this context.
 
+First of all, $X_i$ is uncorrelated with $\varepsilon_i$. If $X_i$ were correlated with the error term that would suggest there's additional information in the error that we can use to make the model better, which would suggest that we don't have the best linear predictor. 
+
+Second, this estimator has the lowest sampling variance. So if this equation is based on a bunch of observations drawn from some underlying dataset, we can draw a bunch of other observations at random and calculate another equation the same way, and we will find that the other equation from the same data is pretty similar. 
+
+Third, the *average* difference between $Y_i$ and the conditional expectation of $Y$ is zero. If we use this estimator over and over we will, on average, get results that converge on the expected value of $Y$ for the given values of $X$. 
+
 ---
 
 # Problem 3: Multiple Regression & Interpretation (20%)
@@ -63,6 +97,12 @@ Use the `states` dataset provided in the `poliscidata` package, which contains s
 
 ```{r load-data}
 library(poliscidata)
+library(ggplot2)
+library(modelsummary)
+library(dplyr)
+library(dbplyr)
+library(car)
+
 data("states")
 
 # Variables include:
@@ -74,8 +114,41 @@ data("states")
 ```
 
 1. Estimate a linear model where `turnout` is the dependent variable and `uninsued_pct`, `college`, and `cig_tax` are independent variables.
+
+```{r}
+turnout_model_1 = lm(vep12_turnout ~ college + uninsured_pct + cig_tax, data = states)
+summary(turnout_model_1)
+```
+
 2. Interpret the results in substantive terms. How would you explain the relationship between income and turnout to a non-technical audience?
+
+Income isn't in the model but I'd point out the positive relationship between college education and turnout. We see that there really isn't a significant relationship under normal measures of statistical significance between other variables (percentage of the population uninsured, the tax rate on cigarettes) and turnout. There is a slightly less than significant relationship between the percentage of the population uninsured and the turnout, however. 
+
+In talking to a non-technical audience, I would simply say that the states with a higher rate of college-educated people also had a higher turnout in the 2012 election --- about half a percentage point more of turnout for every percentage point of college-educated people. I would try to avoid saying that there's a causal relationship; that's more than I can do with this data. 
+
 3. Assess multicollinearity using Variance Inflation Factors (VIFs). Discuss whether it is a concern here.
+
+```{r}
+vif_values_model_1 = vif(turnout_model_1)
+vif_values_model_1
+```
+
+Citing external code: The calculation of VIF here is drawn from https://www.r-bloggers.com/2023/12/exploring-variance-inflation-factor-vif-in-r-a-practical-guide/. I mostly  needed to find what function in R would calculate VIF more conveniently. 
+
+So, the VIF is how much the variance of a regression coefficient is increased by the presence of *other* variables in the model. The square root tells us how much the variance increases relative to if it had no collinearity with any other variable. Unfortunately we don't know which other variable is responsible for this calamity (though, because it takes two variables to be collinear, both the variable with the high VIF and some other variable are jointly responsible). But generally a VIF under 5 is acceptable. 
+
+Still because collinearity increases variance, it will reduce statistical power and make it harder to identify significant results. There is reason to think that being uninsured is correlated with consumption of cigarettes (because these may create preexisting conditions that make insurance hard to get) and with lack of higher education. 
+
+I'm going to run a quick check on what each mostly significant variable looks like on its own...
+
+```{r}
+turnout_model_2_simple = lm(vep12_turnout ~ college, data = states)
+turnout_model_3_simple = lm(vep12_turnout ~ uninsured_pct, data = states)
+summary(turnout_model_2_simple)
+summary(turnout_model_3_simple)
+```
+
+What we find is that on their own, college education and uninsured percentage of the population both predict turnout; uninsuredness predicts lower turnout and college education predicts higher turnout. 
 
 ---
 
@@ -87,8 +160,74 @@ Using the model from Problem 3:
    - Residuals vs. Fitted
    - Q-Q plot of residuals
    - Scale-Location plot
+
+Let's start with a residuals plot. I drew the code for this from what I did on a previous problem set (PS8) and modified it accordingly. 
+
+```{r}
+residuals_versus_fitted <- data.frame(fitted = fitted(turnout_model_1), residuals = residuals(turnout_model_1))
+
+res_plot_1 = ggplot(data = residuals_versus_fitted, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_smooth() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for Turnout Model") +
+  theme_minimal()
+res_plot_1
+
+```
+So, this diagnostic plot shows us which observations are farther from the norm. In general, just eyeballing the plot, I don't see a pattern that indicates heteroskedasticity. If this data were heteroskedastic I would expect to see a funnel shape, but what we see instead is more of a uniform blob.  I included a fitted line, which doesn't meander consistently far from zero, though the model does seem to have a cluster of overestimates around 57-60 and underestimates elsewhere. 
+
+Next up, a Q-Q plot. We actually didn't do these in class, to my memory, but I'm looking at slideshow 16, starting at slide 50, to get a sense of what these are for. A quantile-quantile plot is intended to check if we have normal errors. If the line on the Q-Q plot follows an x = y line, we're looking at normally distributed errors. Copying code from slide 51 of slideshow 16. 
+
+```{r}
+qqnorm(resid(turnout_model_1))
+qqline(resid(turnout_model_1), col = "red")
+```
+
+It looks like points more or less follow the correct line. There's a bit of departure from the line at the ends, but it appears based on this plot that the errors are at least mostly normally distributed. 
+
+Finally, a scale-location plot. Again we didn't quite get to this one in class, so I'm looking at [what the University of Virginia has to say about it](https://library.virginia.edu/data/articles/diagnostic-plots) and the coding tips from [this link here](https://www.r-tutor.com/elementary-statistics/simple-linear-regression/standardized-residual) from r-tutor. 
+
+As far as I can tell from U of Virginia's account, a scale-location plot looks at whether or not residuals are spread evenly along the range of predictors. We plot the *square roots* of *standardized* residuals against fitted values. A standardized residual is the residual divided by the standard deviation of residuals, 
+
+```{r}
+residuals_versus_fitted = mutate(residuals_versus_fitted, standardized_residuals = rstandard(turnout_model_1))
+residuals_versus_fitted = mutate(residuals_versus_fitted, sqrt_std_res = sqrt(abs(standardized_residuals)))
+```
+
+```{r}
+
+stdres_plot = ggplot(data = residuals_versus_fitted, aes(x = fitted, y = sqrt_std_res)) +
+  geom_point() +
+  geom_smooth() +
+  labs(x = "Fitted Value", y = "Square Roots of Standardized Residuals", title = "Scale-Location Plot for Turnout Model") +
+  geom_hline(yintercept = mean(residuals_versus_fitted$sqrt_std_res), color = "red", linetype = "dashed") +
+  theme_minimal()
+
+stdres_plot
+```
+So, the more horizontal the line is, the better, hence my plotting a horizontal line at the mean value of the square roots of standardized residuals. There are a few things that raise my eyebrows towards the upper end, where it seems the residuals increase on average, but overall we mostly follow a horizontal line. I don't think there's good evidence here of heteroskedasticity.
+   
 2. Conduct a Breusch-Pagan test for heteroskedasticity. If present, re-estimate the model with robust standard errors using `sandwich` and `lmtest`.
 
+Nonetheless, let us make absolutely sure that there is no risk of heteroskedasticity. The Breusch-Pagan test I'm about to run is from slide 57 onward of slideshow 16 (we didn't get to it in class). 
+
+```{r}
+library(lmtest)
+bptest(turnout_model_1)
+```
+
+A Breusch-Pagan test regresses residuals on predictors (or fitted values, which themselves come out of the predictors). If there's a significant relationship between the absolute value of residuals and the fitted values, we may be at risk of heteroskedasticity. In this case, our p-value for the Breusch-Pagan test is greater than 0.05, which suggests we aren't at the point where we should *really* start worrying. I don't love even this non-significant relationship we've found (since significance is ultimately a fairly arbitrary benchmark and there's only about an 8% chance that this relationship is a product of random chance).
+
+Because I am paranoid, even though I don't *need* to rerun a regression with robust standard errors, I'm going to do that anyway. 
+
+```{r}
+library(sandwich)
+library(lmtest)
+
+coeftest(turnout_model_1, vcov = vcovHC)
+```
+Okay, so with robust standard errors (HC3), the relationships all fall below the standard measures of statistical significance. 
 
 ---
 
@@ -97,9 +236,66 @@ Using the model from Problem 3:
 Political scientists often argue that the effects of economic and educational inequalities on turnout aren't linear.
 
 1. Test whether there should be nonlinear transformations of `uninsured_pct` and `college` in your model from Problem 3.
+
+Let's look at the residuals from Turnout Model 2, in which `college` is the only variable, and Turnout Model 3, in which `uninsured_pct` is the only variable. 
+
+```{r}
+residuals_versus_fitted_2 <- data.frame(fitted = fitted(turnout_model_2_simple), residuals = residuals(turnout_model_2_simple))
+
+res_plot_2 = ggplot(data = residuals_versus_fitted_2, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_smooth() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for College Turnout Model") +
+  theme_minimal()
+res_plot_2
+
+residuals_versus_fitted_3 <- data.frame(fitted = fitted(turnout_model_3_simple), residuals = residuals(turnout_model_3_simple))
+
+res_plot_3 = ggplot(data = residuals_versus_fitted_3, aes(x = fitted, y = residuals)) +
+  geom_point() +
+  geom_smooth() +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Fitted Value", y = "Residual", title = "Residual Plot for Uninsured Percent Turnout Model") +
+  theme_minimal()
+res_plot_3
+
+```
+To be honest, I don't see a good reason to do a transformation. They wiggle back and forth across the horizontal line and the 95% intervals overlap 0 everywhere. 
+
+There seem to be about two turning points on the residuals graph of the effects of college education on turnout and three on the graph of the effects of uninsuredness, which suggests to me that there may be a cubic relationship between college education and turnout. Graphing this relationship would be in my view unwise. With a cubic relationship, the effect would be both hard to interpret and potentially lead to overfitting. The risk of overfitting is particularly concerning to me with only fifty observations to work with. 
+
+To make extra sure, I'll graph a scatterplot. 
+
+```{r}
+ggplot(data = states, aes(x = college, y = vep12_turnout)) +
+  geom_point() +
+  geom_smooth() +
+  labs(x = "Percentage of Population College Educated", y = "Turnout in 2012 Election", title = "College Education and Turnout in 2012")
+
+```
+Again what we see here is a mostly monotonic relationship, with a bit of a flat point towards the middle. We might use a cubic transformation. I am still leery about it though. I'll check with a quadratic term as well for the sake of completeness. 
+
+```{r}
+turnout_model_1_quadratic = lm(data = states, formula = (vep12_turnout ~ college + I(college^2) + uninsured_pct + cig_tax))
+summary(turnout_model_1_quadratic)
+
+turnout_model_1_cubic = lm(data = states, formula = (vep12_turnout ~ college + I(college^2) + I(college^3) + uninsured_pct + cig_tax))
+summary(turnout_model_1_cubic)
+
+```
+
 2. Interpret any nonlinear transformations you add using:
    - The coefficient table
    - Relevant plots (using `ggeffects` or `margins`)
+  
+Well, when we apply a cubic transformation, the actual relationship disappears. I'm inclined to use `sjPlot` to measure effects, since I'm more familiar with it than I am with either `ggeffects` or `margins`.  
+
+```{r}
+library(ggeffects)
+library(sjPlot)
+plot_model(turnout_model_1_cubic, type = "pred", terms = "college")
+```
 
 ---
 
@@ -108,8 +304,49 @@ Political scientists often argue that the effects of economic and educational in
 Prepare a publication-quality regression table and figure.
 
 1. Create a table (using `modelsummary`, `stargazer`, `gt`, or `kableExtra`) that displays:
-   - The model from Problem 3 (without nonlinarity)
+   - The model from Problem 3 (without nonlinearity)
    - Any changes to the model from Problem 5 (potentially with nonlinearity)
    - Include robust standard errors in parentheses.
+
+```{r}
+library(kableExtra)
+
+models = list("Uncontrolled Model" = turnout_model_2_simple, "Linear Model" = turnout_model_1, "Cubic Model" = turnout_model_1_cubic)
+
+cm = list(
+       'college' = 'Residents with college degree',
+       'I(college^2)' = 'Residents with college degree squared',
+       'I(college^3)' = 'Residents with college degree cubed',
+       'uninsured_pct' = 'Residents without health insurance',
+       'cig_tax' = 'Tax rate on cigarettes')
+
+fancy_model = modelsummary(models = models, 
+         vcov = "HC3",
+         coef_map = cm,
+         stars = c("*" = .05),
+         notes = c("Note: Robust standard errors (HC3) in parentheses.", "Data available upon request.", "Data from States Dataset (R)."), 
+        title = "Different Effects of College Education on Turnout",
+        gof_omit = 'AIC|BIC|Log|RMSE|R2 Adj.',
+        fmt = 2,
+        output = "kableExtra",
+        escape = TRUE) %>%
+  kable_styling(font_size = 12)
+
+fancy_model
+```
+
 2. Create a professional scatterplot with a regression line (using `ggplot2`) showing the relationship between `college` and `turnout.`
+
+```{r}
+professional_scatterplot = ggplot(data = states, aes(x = college, y = vep12_turnout)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(x = "Turnout in 2012 Presidential Election", y = "Percent Residents With a College Education", title = "College Education and Voter Turnout in 2012") 
+professional_scatterplot
+```
+
 3. Write a short abstract (≤150 words) summarizing one key finding from your analysis, as if for a political science journal.
+
+"Common analyses of political participation focus on the important role of socioeconomic status in enabling participation. In this study, one particular part of socioeconomic status, level of education, was evaluated. Though a relationship between a state's rate of college education and a state's turnout in the 2012 presidential election was identified, this effect disappeared once investigators controlled for the percentage of the population without health insurance. The effect of college education on turnout appears highly sensitive to other factors." 
+
+(I will note that I more or less followed the lead of the assignment at the start in including cigarette tax rates in the analysis, and I have no coherent reason for having done so, so in highly unscientific fashion I simply ignore it). 
